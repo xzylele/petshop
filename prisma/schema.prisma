@@ -1,0 +1,239 @@
+// Pet Shop Marketplace Schema
+// แหล่งนิยามโมเดลและความสัมพันธ์ทั้งหมดของฐานข้อมูล
+// SQLite for instant local dev. To switch to PostgreSQL in production:
+//   - change provider to "postgresql"
+//   - replace String fields used as enums with Prisma `enum` blocks
+//   - replace comma-joined `animalTypes` with `String[]`
+//   - update DATABASE_URL accordingly
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// -------- USERS --------
+// role:   CUSTOMER | SHOP_OWNER | SHOP_STAFF | ADMIN
+// status: ACTIVE | SUSPENDED | PENDING
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  phone     String?
+  password  String
+  role      String    @default("CUSTOMER")
+  status    String    @default("ACTIVE")
+  avatarUrl String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  shop      Shop?
+  addresses Address[]
+  orders    Order[]
+  reviews   Review[]
+  cart      Cart?
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  phone       String
+  addressLine String
+  province    String
+  district    String
+  subDistrict String?
+  postalCode  String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// -------- SHOP --------
+// status: PENDING | APPROVED | REJECTED | SUSPENDED
+model Shop {
+  id          String    @id @default(cuid())
+  ownerId     String    @unique
+  name        String
+  description String?
+  phone       String?
+  address     String?
+  province    String?
+  latitude    Float?
+  longitude   Float?
+  logoUrl     String?
+  coverUrl    String?
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  products    Product[]
+}
+
+// -------- FARM --------
+// status: ACTIVE | HIDDEN | PENDING
+model Farm {
+  id            String      @id @default(cuid())
+  name          String
+  description   String?
+  address       String
+  province      String?
+  district      String?
+  subDistrict   String?
+  latitude      Float?
+  longitude     Float?
+  phone         String?
+  coverImageUrl String?
+  animalTypes   String      @default("") // comma-separated list (SQLite has no arrays)
+  status        String      @default("ACTIVE")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  images        FarmImage[]
+  animals       Animal[]
+}
+
+model FarmImage {
+  id        String @id @default(cuid())
+  farmId    String
+  imageUrl  String
+  sortOrder Int    @default(0)
+
+  farm      Farm   @relation(fields: [farmId], references: [id], onDelete: Cascade)
+}
+
+// -------- PRODUCT --------
+// status: ACTIVE | HIDDEN | OUT_OF_STOCK
+model Product {
+  id          String      @id @default(cuid())
+  shopId      String
+  name        String
+  description String?
+  category    String
+  petType     String?
+  price       Float
+  stock       Int         @default(0)
+  imageUrl    String?
+  status      String      @default("ACTIVE")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+}
+
+// -------- ANIMAL --------
+// status: ACTIVE | HIDDEN | SOLD | RESERVED
+model Animal {
+  id          String      @id @default(cuid())
+  farmId      String?
+  name        String?
+  animalType  String
+  breed       String?
+  gender      String?
+  birthDate   DateTime?
+  price       Float
+  description String?
+  imageUrl    String?
+  isExotic    Boolean     @default(false)
+  status      String      @default("ACTIVE")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  farm        Farm?       @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+}
+
+// -------- CART --------
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String?
+  animalId  String?
+  quantity  Int      @default(1)
+
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  animal    Animal?  @relation(fields: [animalId], references: [id], onDelete: Cascade)
+}
+
+// -------- ORDER + PAYMENT --------
+// order.status:   PENDING_PAYMENT | PAID | PREPARING | SHIPPED | COMPLETED | CANCELLED
+// payment.method: QR_CODE | BANK_TRANSFER
+// payment.status: PENDING | SUBMITTED | VERIFIED | REJECTED | REFUNDED
+model Order {
+  id        String      @id @default(cuid())
+  userId    String
+  total     Float
+  status    String      @default("PENDING_PAYMENT")
+  address   String
+  note      String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user      User        @relation(fields: [userId], references: [id])
+  items     OrderItem[]
+  payment   Payment?
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String?
+  animalId  String?
+  name      String
+  quantity  Int      @default(1)
+  price     Float
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  animal    Animal?  @relation(fields: [animalId], references: [id], onDelete: SetNull)
+}
+
+model Payment {
+  id         String    @id @default(cuid())
+  orderId    String    @unique
+  method     String
+  amount     Float
+  slipUrl    String?
+  status     String    @default("PENDING")
+  reference  String?
+  paidAt     DateTime?
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// -------- REVIEW --------
+// targetType: product | shop | farm | animal
+// status: visible | hidden | reported
+model Review {
+  id         String   @id @default(cuid())
+  reviewerId String
+  targetType String
+  targetId   String
+  rating     Int
+  comment    String?
+  status     String   @default("visible")
+  createdAt  DateTime @default(now())
+
+  reviewer   User     @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+}
