@@ -58,8 +58,13 @@ export default async function ShopOrdersPage() {
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span className="badge bg-slate-100 text-slate-800">{ORDER_STATUS_LABEL[o.status]}</span>
                   {o.payment && <span className="badge bg-slate-100 text-slate-800">การชำระ: {o.payment.status}</span>}
+                  {o.trackingNumber && (
+                    <span className="badge bg-emerald-50 text-emerald-800 border border-emerald-100 font-mono">
+                      เลขพัสดุ: {o.trackingNumber}
+                    </span>
+                  )}
                   <div className="ml-auto">
-                    <OrderStatusSelect orderId={o.id} status={o.status} />
+                    <OrderStatusSelect orderId={o.id} status={o.status} trackingNumber={o.trackingNumber} />
                   </div>
                 </div>
               </div>

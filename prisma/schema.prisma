@@ -8,6 +8,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/client"
 }
 
 datasource db {
@@ -183,14 +184,15 @@ model CartItem {
 // payment.method: QR_CODE | BANK_TRANSFER
 // payment.status: PENDING | SUBMITTED | VERIFIED | REJECTED | REFUNDED
 model Order {
-  id        String      @id @default(cuid()) @map("_id")
-  userId    String
-  total     Float
-  status    String      @default("PENDING_PAYMENT")
-  address   String
-  note      String?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id             String      @id @default(cuid()) @map("_id")
+  userId         String
+  total          Float
+  status         String      @default("PENDING_PAYMENT")
+  address        String
+  note           String?
+  trackingNumber String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   user      User        @relation(fields: [userId], references: [id])
   items     OrderItem[]

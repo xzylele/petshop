@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/ProductCard";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/client";
 
 export const dynamic = "force-dynamic";
 

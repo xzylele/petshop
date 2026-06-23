@@ -5,7 +5,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const Body = z.object({
-  status: z.enum(["PAID", "PREPARING", "SHIPPED", "COMPLETED", "CANCELLED"])
+  status: z.enum(["PAID", "PREPARING", "SHIPPED", "COMPLETED", "CANCELLED"]),
+  trackingNumber: z.string().optional().nullable()
 });
 
 // PUT: อัปเดตสถานะคำสั่งซื้อ (ตรวจสิทธิ์ร้านก่อน)
@@ -33,6 +34,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!hasMyItem) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  await prisma.order.update({ where: { id }, data: { status: parsed.data.status } });
+  await prisma.order.update({ 
+    where: { id }, 
+    data: { 
+      status: parsed.data.status,
+      trackingNumber: parsed.data.trackingNumber !== undefined ? parsed.data.trackingNumber : undefined
+    } 
+  });
   return NextResponse.json({ ok: true });
 }

@@ -1,5 +1,4 @@
-// Prisma client แบบ singleton ป้องกันสร้างซ้ำระหว่าง hot-reload
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../generated/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 

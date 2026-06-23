@@ -5,7 +5,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const Body = z.object({
-  slipUrl: z.string().url(),
+  slipUrl: z.string().refine(
+    (val) => val.startsWith("http://") || val.startsWith("https://") || val.startsWith("data:image/"),
+    { message: "ต้องเป็น URL รูปภาพหรือ Base64 Data URL" }
+  ),
   reference: z.string().optional().default("")
 });
 

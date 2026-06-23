@@ -5,11 +5,17 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
+  const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user;
   const [open, setOpen] = useState(false);
+
+  if (pathname && (pathname.startsWith("/admin") || pathname.startsWith("/shop"))) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -44,6 +50,7 @@ export default function Navbar() {
                 <div className="absolute right-0 mt-2 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
                   <DropItem href="/profile" onClick={() => setOpen(false)}>โปรไฟล์</DropItem>
                   <DropItem href="/orders" onClick={() => setOpen(false)}>คำสั่งซื้อของฉัน</DropItem>
+                  <DropItem href="/bookings" onClick={() => setOpen(false)}>การจองคิวของฉัน</DropItem>
                   {(user.role === "SHOP_OWNER" || user.role === "SHOP_STAFF" || user.role === "ADMIN") && (
                     <DropItem href="/shop/dashboard" onClick={() => setOpen(false)}>หลังบ้านร้านค้า</DropItem>
                   )}
@@ -87,6 +94,7 @@ export default function Navbar() {
             <>
               <MobileLink href="/profile">โปรไฟล์</MobileLink>
               <MobileLink href="/orders">คำสั่งซื้อ</MobileLink>
+              <MobileLink href="/bookings">การจองคิว</MobileLink>
               {(user.role === "SHOP_OWNER" || user.role === "SHOP_STAFF") && <MobileLink href="/shop/dashboard">หลังบ้านร้านค้า</MobileLink>}
               {user.role === "ADMIN" && <MobileLink href="/admin/dashboard">ผู้ดูแลระบบ</MobileLink>}
               <button

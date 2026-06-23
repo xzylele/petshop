@@ -1,5 +1,15 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 // ส่วนท้ายเว็บไซต์
 export default function Footer() {
+  const pathname = usePathname();
+
+  if (pathname && (pathname.startsWith("/admin") || pathname.startsWith("/shop"))) {
+    return null;
+  }
+
   return (
     <footer className="border-t border-slate-200 bg-white">
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 text-sm text-slate-600 md:grid-cols-3">

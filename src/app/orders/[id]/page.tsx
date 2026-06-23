@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatTHB, formatDate, ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/utils";
 import SlipUploadForm from "./SlipUploadForm";
+import { Truck } from "lucide-react";
+import OrderRealtimeTracker from "@/components/OrderRealtimeTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -22,13 +24,35 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">คำสั่งซื้อ #{order.id.slice(-8).toUpperCase()}</h1>
-          <div className="text-sm text-slate-500">{formatDate(order.createdAt)}</div>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-800">คำสั่งซื้อ #{order.id.slice(-8).toUpperCase()}</h1>
+            <OrderRealtimeTracker 
+              orderId={order.id} 
+              initialStatus={order.status} 
+              initialTracking={order.trackingNumber} 
+              initialPaymentStatus={order.payment?.status} 
+            />
+          </div>
+          <div className="text-sm text-slate-500 mt-1">{formatDate(order.createdAt)}</div>
         </div>
         <span className="badge bg-brand-100 text-brand-700">{ORDER_STATUS_LABEL[order.status] ?? order.status}</span>
       </div>
+
+      {order.trackingNumber && (
+        <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 text-emerald-800 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-200/50">
+            <Truck className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-emerald-900">สินค้าจัดส่งแล้ว!</p>
+            <p className="text-xs text-emerald-700 mt-0.5">
+              เลขติดตามพัสดุ: <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-emerald-200 text-slate-800 select-all">{order.trackingNumber}</span>
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="space-y-4 md:col-span-2">
@@ -96,7 +120,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
               {(order.payment.status === "PENDING" || order.payment.status === "REJECTED") && (
                 <div className="mt-4">
-                  <SlipUploadForm orderId={order.id} />
+                  <SlipUploadForm orderId={order.id} amount={order.total} />
                 </div>
               )}
 
