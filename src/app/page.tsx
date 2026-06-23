@@ -11,13 +11,22 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const [featuredProducts, featuredAnimals, featuredFarms] = await Promise.all([
     prisma.product.findMany({
-      where: { status: "ACTIVE" },
+      where: { 
+        status: "ACTIVE",
+        shop: { status: "APPROVED" }
+      },
       include: { shop: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 8
     }),
     prisma.animal.findMany({
-      where: { status: "ACTIVE" },
+      where: { 
+        status: "ACTIVE",
+        OR: [
+          { farmId: null },
+          { farm: { status: "ACTIVE" } }
+        ]
+      },
       include: { farm: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 4

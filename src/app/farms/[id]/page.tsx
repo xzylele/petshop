@@ -12,7 +12,7 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
     where: { id },
     include: { animals: true, images: { orderBy: { sortOrder: "asc" } } }
   });
-  if (!farm) notFound();
+  if (!farm || farm.status !== "ACTIVE") notFound();
 
   const types = farm.animalTypes.split(",").map((s) => s.trim()).filter(Boolean);
 

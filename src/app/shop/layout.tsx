@@ -20,6 +20,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
           <SideLink href="/shop/dashboard">📊 ภาพรวม</SideLink>
           <SideLink href="/shop/products">📦 สินค้า</SideLink>
           <SideLink href="/shop/orders">📋 คำสั่งซื้อ</SideLink>
+          <SideLink href="/shop/bookings">📅 การจองคิว</SideLink>
           <SideLink href="/shop/profile">⚙️ ตั้งค่าร้าน</SideLink>
         </nav>
       </aside>

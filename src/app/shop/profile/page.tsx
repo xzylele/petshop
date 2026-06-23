@@ -20,7 +20,9 @@ export default async function ShopProfilePage() {
         address: shop.address ?? "",
         province: shop.province ?? "",
         coverUrl: shop.coverUrl ?? "",
-        logoUrl: shop.logoUrl ?? ""
+        logoUrl: shop.logoUrl ?? "",
+        allowsGrooming: shop.allowsGrooming,
+        allowsBoarding: shop.allowsBoarding
       } : null} />
     </div>
   );

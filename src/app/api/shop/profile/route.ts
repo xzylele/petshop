@@ -11,7 +11,9 @@ const Body = z.object({
   address: z.string().optional().default(""),
   province: z.string().optional().default(""),
   coverUrl: z.string().optional().default(""),
-  logoUrl: z.string().optional().default("")
+  logoUrl: z.string().optional().default(""),
+  allowsGrooming: z.boolean().optional().default(false),
+  allowsBoarding: z.boolean().optional().default(false)
 });
 
 // PUT: สร้างหรืออัปเดตร้านค้าของผู้ใช้

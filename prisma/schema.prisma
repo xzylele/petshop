@@ -11,7 +11,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -19,7 +19,7 @@ datasource db {
 // role:   CUSTOMER | SHOP_OWNER | SHOP_STAFF | ADMIN
 // status: ACTIVE | SUSPENDED | PENDING
 model User {
-  id        String    @id @default(cuid())
+  id        String    @id @default(cuid()) @map("_id")
   name      String
   email     String    @unique
   phone     String?
@@ -35,10 +35,11 @@ model User {
   orders    Order[]
   reviews   Review[]
   cart      Cart?
+  bookings  Booking[]
 }
 
 model Address {
-  id          String   @id @default(cuid())
+  id          String   @id @default(cuid()) @map("_id")
   userId      String
   name        String
   phone       String
@@ -56,7 +57,7 @@ model Address {
 // -------- SHOP --------
 // status: PENDING | APPROVED | REJECTED | SUSPENDED
 model Shop {
-  id          String    @id @default(cuid())
+  id          String    @id @default(cuid()) @map("_id")
   ownerId     String    @unique
   name        String
   description String?
@@ -68,17 +69,20 @@ model Shop {
   logoUrl     String?
   coverUrl    String?
   status      String    @default("PENDING")
+  allowsGrooming Boolean   @default(false)
+  allowsBoarding Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   products    Product[]
+  bookings    Booking[]
 }
 
 // -------- FARM --------
 // status: ACTIVE | HIDDEN | PENDING
 model Farm {
-  id            String      @id @default(cuid())
+  id            String      @id @default(cuid()) @map("_id")
   name          String
   description   String?
   address       String
@@ -99,7 +103,7 @@ model Farm {
 }
 
 model FarmImage {
-  id        String @id @default(cuid())
+  id        String @id @default(cuid()) @map("_id")
   farmId    String
   imageUrl  String
   sortOrder Int    @default(0)
@@ -110,7 +114,7 @@ model FarmImage {
 // -------- PRODUCT --------
 // status: ACTIVE | HIDDEN | OUT_OF_STOCK
 model Product {
-  id          String      @id @default(cuid())
+  id          String      @id @default(cuid()) @map("_id")
   shopId      String
   name        String
   description String?
@@ -131,7 +135,7 @@ model Product {
 // -------- ANIMAL --------
 // status: ACTIVE | HIDDEN | SOLD | RESERVED
 model Animal {
-  id          String      @id @default(cuid())
+  id          String      @id @default(cuid()) @map("_id")
   farmId      String?
   name        String?
   animalType  String
@@ -153,7 +157,7 @@ model Animal {
 
 // -------- CART --------
 model Cart {
-  id        String     @id @default(cuid())
+  id        String     @id @default(cuid()) @map("_id")
   userId    String     @unique
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -163,7 +167,7 @@ model Cart {
 }
 
 model CartItem {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   cartId    String
   productId String?
   animalId  String?
@@ -179,7 +183,7 @@ model CartItem {
 // payment.method: QR_CODE | BANK_TRANSFER
 // payment.status: PENDING | SUBMITTED | VERIFIED | REJECTED | REFUNDED
 model Order {
-  id        String      @id @default(cuid())
+  id        String      @id @default(cuid()) @map("_id")
   userId    String
   total     Float
   status    String      @default("PENDING_PAYMENT")
@@ -194,7 +198,7 @@ model Order {
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   orderId   String
   productId String?
   animalId  String?
@@ -208,7 +212,7 @@ model OrderItem {
 }
 
 model Payment {
-  id         String    @id @default(cuid())
+  id         String    @id @default(cuid()) @map("_id")
   orderId    String    @unique
   method     String
   amount     Float
@@ -226,7 +230,7 @@ model Payment {
 // targetType: product | shop | farm | animal
 // status: visible | hidden | reported
 model Review {
-  id         String   @id @default(cuid())
+  id         String   @id @default(cuid()) @map("_id")
   reviewerId String
   targetType String
   targetId   String
@@ -236,4 +240,28 @@ model Review {
   createdAt  DateTime @default(now())
 
   reviewer   User     @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+}
+
+// -------- BOOKING --------
+// serviceType: GROOMING | PET_HOTEL | SPA | VACCINATION
+// status:      PENDING | CONFIRMED | COMPLETED | CANCELLED
+model Booking {
+  id          String   @id @default(cuid()) @map("_id")
+  userId      String
+  shopId      String
+  petName     String
+  petType     String
+  serviceType String
+  dateTime    DateTime
+  notes       String?
+  status      String   @default("PENDING")
+  price            Float     @default(0)
+  petWeight        Float?
+  checkOutDateTime DateTime?
+  days             Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 }

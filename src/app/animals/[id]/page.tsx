@@ -14,7 +14,7 @@ export default async function AnimalDetailPage({ params }: { params: Promise<{ i
     where: { id },
     include: { farm: true }
   });
-  if (!animal) notFound();
+  if (!animal || (animal.farm && animal.farm.status !== "ACTIVE")) notFound();
 
   const available = animal.status === "ACTIVE";
 

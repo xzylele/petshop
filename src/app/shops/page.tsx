@@ -31,6 +31,8 @@ export default async function ShopsPage() {
               coverUrl={s.coverUrl}
               status={s.status}
               productCount={s._count.products}
+              allowsGrooming={s.allowsGrooming}
+              allowsBoarding={s.allowsBoarding}
             />
           ))}
         </div>

@@ -9,9 +9,21 @@ type Props = {
   coverUrl?: string | null;
   status?: string;
   productCount?: number;
+  allowsGrooming?: boolean;
+  allowsBoarding?: boolean;
 };
 
-export default function ShopCard({ id, name, province, description, coverUrl, status, productCount }: Props) {
+export default function ShopCard({ 
+  id, 
+  name, 
+  province, 
+  description, 
+  coverUrl, 
+  status, 
+  productCount,
+  allowsGrooming,
+  allowsBoarding
+}: Props) {
   return (
     <Link href={`/shops/${id}`} className="card group block overflow-hidden transition hover:shadow-md">
       <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100">
@@ -29,6 +41,15 @@ export default function ShopCard({ id, name, province, description, coverUrl, st
         </div>
         <div className="mt-1 text-base font-semibold text-slate-800">{name}</div>
         {description && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{description}</p>}
+        
+        {/* บริการที่เปิดรับจอง */}
+        {(allowsGrooming || allowsBoarding) && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {allowsGrooming && <span className="rounded bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700">✂️ อาบน้ำตัดขน</span>}
+            {allowsBoarding && <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">🏨 รับฝากเลี้ยง</span>}
+          </div>
+        )}
+
         {typeof productCount === "number" && <div className="mt-2 text-xs text-slate-500">สินค้า {productCount} รายการ</div>}
       </div>
     </Link>

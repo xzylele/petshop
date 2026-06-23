@@ -1,5 +1,6 @@
 // หน้ารายละเอียดร้านค้า + สินค้าในร้าน
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/ProductCard";
 
@@ -12,7 +13,7 @@ export default async function ShopDetailPage({ params }: { params: Promise<{ id:
     where: { id },
     include: { products: { where: { status: "ACTIVE" } } }
   });
-  if (!shop) notFound();
+  if (!shop || shop.status !== "APPROVED") notFound();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -31,15 +32,25 @@ export default async function ShopDetailPage({ params }: { params: Promise<{ id:
             {shop.province ?? "—"} {shop.phone ? `· ☎ ${shop.phone}` : ""}
           </div>
           <p className="mt-4 whitespace-pre-wrap text-slate-700">{shop.description ?? "—"}</p>
-          {shop.latitude && shop.longitude && (
-            <a
-              className="mt-3 inline-block text-sm text-brand-700 hover:underline"
-              target="_blank" rel="noreferrer"
-              href={`https://www.google.com/maps/search/?api=1&query=${shop.latitude},${shop.longitude}`}
-            >
-              📍 ดูบนแผนที่
-            </a>
-          )}
+          <div className="mt-6 flex flex-wrap gap-3">
+            {(shop.allowsGrooming || shop.allowsBoarding) && (
+              <Link
+                href={`/shops/${shop.id}/book`}
+                className="btn-primary flex items-center gap-2"
+              >
+                📅 จองคิวบริการสัตว์เลี้ยง (Grooming / ฝากเลี้ยง)
+              </Link>
+            )}
+            {shop.latitude && shop.longitude && (
+              <a
+                className="btn-outline flex items-center gap-2 text-sm"
+                target="_blank" rel="noreferrer"
+                href={`https://www.google.com/maps/search/?api=1&query=${shop.latitude},${shop.longitude}`}
+              >
+                📍 ดูบนแผนที่
+              </a>
+            )}
+          </div>
         </div>
       </div>
 

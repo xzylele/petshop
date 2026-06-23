@@ -14,7 +14,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     where: { id },
     include: { shop: true }
   });
-  if (!product) notFound();
+  if (!product || product.shop.status !== "APPROVED") notFound();
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
