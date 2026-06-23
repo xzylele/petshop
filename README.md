@@ -19,13 +19,7 @@ npm run db:seed     # ใส่ข้อมูลตัวอย่าง + admi
 npm run dev         # เปิด http://localhost:3000
 ```
 
-## บัญชีทดสอบ
 
-| บทบาท      | อีเมล                   | รหัสผ่าน      |
-|------------|-------------------------|---------------|
-| ADMIN      | `admin@pets.shop`       | `admin1234`   |
-| SHOP_OWNER | `shop@pets.shop`        | `shop1234`    |
-| CUSTOMER   | `customer@pets.shop`    | `customer1234`|
 
 ## โครงสร้างหน้าหลัก
 
