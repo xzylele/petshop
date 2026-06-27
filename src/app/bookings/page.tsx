@@ -288,7 +288,21 @@ export default async function CustomerBookingsPage({ searchParams }: { searchPar
                   <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0 pt-4 border-t border-slate-100 sm:border-t-0 sm:pt-0">
                     <div className="text-right">
                       <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">ค่าบริการโดยประมาณ</div>
-                      <div className="text-xl font-extrabold text-brand-600">{formatTHB(booking.price)}</div>
+                      {booking.discount && booking.discount > 0 ? (
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] text-slate-450 line-through">
+                            {formatTHB(booking.price + booking.discount)}
+                          </span>
+                          <span className="text-lg font-extrabold text-brand-600">
+                            {formatTHB(booking.price)}
+                          </span>
+                          <span className="text-[9px] text-emerald-700 font-bold bg-emerald-50/50 border border-emerald-100 px-1.5 py-0.2 rounded mt-0.5 uppercase">
+                            โค้ด: {booking.couponCode} (-{formatTHB(booking.discount)})
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-xl font-extrabold text-brand-600">{formatTHB(booking.price)}</div>
+                      )}
                     </div>
                     {booking.status === "PENDING" && (
                       <div className="shrink-0">

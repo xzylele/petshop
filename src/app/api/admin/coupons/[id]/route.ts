@@ -14,7 +14,8 @@ const UpdateCouponSchema = z.object({
   minPurchase: z.number().nonnegative().optional(),
   maxDiscount: z.number().nonnegative().optional().nullable(),
   endDate: z.string().transform((val) => new Date(val)).optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  allowedCategory: z.enum(["ALL", "PRODUCT", "ANIMAL", "SERVICE"]).optional()
 });
 
 // PUT: แก้ไขข้อมูลคูปองส่วนลดกลาง (เฉพาะแอดมิน)

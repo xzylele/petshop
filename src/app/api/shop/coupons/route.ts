@@ -9,7 +9,8 @@ const CouponSchema = z.object({
   discountValue: z.number().positive("มูลค่าส่วนลดต้องมากกว่า 0"),
   minPurchase: z.number().nonnegative().optional().default(0),
   maxDiscount: z.number().positive().nullable().optional(),
-  endDate: z.string().transform(val => new Date(val))
+  endDate: z.string().transform(val => new Date(val)),
+  allowedCategory: z.enum(["ALL", "PRODUCT", "ANIMAL", "SERVICE"]).optional().default("ALL")
 });
 
 // GET: ดึงคูปองของร้านค้าตัวเอง
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { code, discountType, discountValue, minPurchase, maxDiscount, endDate } = parsed.data;
+    const { code, discountType, discountValue, minPurchase, maxDiscount, endDate, allowedCategory } = parsed.data;
 
     // ตรวจสอบว่ามีคูปองรหัสนี้ซ้ำในระบบหรือไม่
     const existing = await prisma.coupon.findUnique({
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
         minPurchase,
         maxDiscount,
         endDate,
+        allowedCategory,
         shopId: shop.id
       }
     });

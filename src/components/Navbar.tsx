@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
+import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -37,6 +38,7 @@ export default function Navbar() {
           <Link href="/cart" className="btn-outline" aria-label="ตะกร้าสินค้า">
             🛒 ตะกร้า
           </Link>
+          {user && <NotificationBell />}
           {user ? (
             <div className="relative">
               <button
@@ -75,13 +77,16 @@ export default function Navbar() {
           )}
         </div>
 
-        <button
-          className="rounded-md border border-slate-300 p-2 md:hidden"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="เมนู"
-        >
-          ☰
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          {user && <NotificationBell />}
+          <button
+            className="rounded-md border border-slate-300 p-2"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="เมนู"
+          >
+            ☰
+          </button>
+        </div>
       </div>
 
       {open && (

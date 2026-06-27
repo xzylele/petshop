@@ -15,6 +15,7 @@ interface Coupon {
   endDate: string;
   isActive: boolean;
   createdAt: string;
+  allowedCategory?: "ALL" | "PRODUCT" | "ANIMAL" | "SERVICE";
 }
 
 export default function ShopCouponsPage() {
@@ -140,9 +141,10 @@ export default function ShopCouponsPage() {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-150 text-slate-500 font-semibold uppercase">
                     <th className="p-4">รหัสคูปอง</th>
-                    <th className="p-4">ประเภท/มูลค่าส่วนลด</th>
-                    <th className="p-4">ยอดสั่งซื้อขั้นต่ำ</th>
-                    <th className="p-4">ส่วนลดสูงสุด</th>
+                    <th className="p-4">ประเภท/ลด</th>
+                    <th className="p-4">หมวดหมู่</th>
+                    <th className="p-4">ยอดขั้นต่ำ</th>
+                    <th className="p-4">ลดสูงสุด</th>
                     <th className="p-4">วันหมดอายุ</th>
                     <th className="p-4">สถานะ</th>
                     <th className="p-4 text-center">จัดการ</th>
@@ -163,6 +165,28 @@ export default function ShopCouponsPage() {
                             <span className="text-rose-600">ลด {c.discountValue}%</span>
                           ) : (
                             <span className="text-emerald-600">ลด {formatTHB(c.discountValue)}</span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          {c.allowedCategory === "PRODUCT" && (
+                            <span className="inline-flex items-center rounded-md bg-blue-50 text-blue-700 px-2 py-0.5 text-[10px] font-bold border border-blue-100">
+                              เฉพาะสินค้า
+                            </span>
+                          )}
+                          {c.allowedCategory === "ANIMAL" && (
+                            <span className="inline-flex items-center rounded-md bg-amber-50 text-amber-700 px-2 py-0.5 text-[10px] font-bold border border-amber-100">
+                              เฉพาะสัตว์
+                            </span>
+                          )}
+                          {c.allowedCategory === "SERVICE" && (
+                            <span className="inline-flex items-center rounded-md bg-purple-50 text-purple-700 px-2 py-0.5 text-[10px] font-bold border border-purple-100">
+                              เฉพาะบริการ
+                            </span>
+                          )}
+                          {(c.allowedCategory === "ALL" || !c.allowedCategory) && (
+                            <span className="inline-flex items-center rounded-md bg-slate-50 text-slate-650 px-2 py-0.5 text-[10px] font-bold border border-slate-200">
+                              ทั้งหมด
+                            </span>
                           )}
                         </td>
                         <td className="p-4">{c.minPurchase > 0 ? formatTHB(c.minPurchase) : "ไม่มีขั้นต่ำ"}</td>

@@ -34,6 +34,7 @@ interface Coupon {
   minPurchase: number;
   maxDiscount: number | null;
   shopName: string;
+  allowedCategory: "ALL" | "PRODUCT" | "ANIMAL" | "SERVICE";
 }
 
 interface CheckoutFormProps {
@@ -536,19 +537,25 @@ export default function CheckoutForm({
                   <div className="pt-1.5">
                     <span className="text-[10px] text-slate-400 font-bold block mb-1.5">คูปองที่คุณใช้ได้:</span>
                     <div className="flex flex-wrap gap-1.5 max-h-[75px] overflow-y-auto">
-                      {availableCoupons.map((c) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => {
-                            setCouponCodeInput(c.code);
-                            handleApplyCoupon(c.code);
-                          }}
-                          className="bg-slate-50 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-300 text-[10px] font-bold text-slate-600 px-2 py-1 rounded-lg border border-slate-200 text-left transition uppercase"
-                        >
-                          🎫 {c.code}
-                        </button>
-                      ))}
+                      {availableCoupons.map((c) => {
+                        let categoryText = "";
+                        if (c.allowedCategory === "PRODUCT") categoryText = " (เฉพาะสินค้า)";
+                        if (c.allowedCategory === "ANIMAL") categoryText = " (เฉพาะสัตว์เลี้ยง)";
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              setCouponCodeInput(c.code);
+                              handleApplyCoupon(c.code);
+                            }}
+                            className="bg-slate-50 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-300 text-[10px] font-bold text-slate-600 px-2.5 py-1 rounded-lg border border-slate-200 text-left transition uppercase"
+                            title={`ใช้ส่วนลดกับหมวดหมู่: ${c.allowedCategory}`}
+                          >
+                            🎫 {c.code}{categoryText}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

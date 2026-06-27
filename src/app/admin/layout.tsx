@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import AdminSidebar from "@/components/AdminSidebar";
+import NotificationBell from "@/components/NotificationBell";
 import { ShieldCheck, LogOut, ArrowLeft, User as UserIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             >
               <ArrowLeft className="w-3.5 h-3.5" /> กลับหน้าหลักร้านค้า
             </Link>
+            
+            <NotificationBell />
             
             <div className="h-6 w-[1px] bg-slate-200" />
             

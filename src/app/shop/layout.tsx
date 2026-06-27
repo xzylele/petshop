@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import ShopSidebar from "@/components/ShopSidebar";
+import NotificationBell from "@/components/NotificationBell";
 import { Store, LogOut, ArrowLeft, Shield } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,8 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
             >
               <ArrowLeft className="w-3.5 h-3.5" /> กลับหน้าหลักร้านค้า
             </Link>
+            
+            <NotificationBell />
             
             <div className="h-6 w-[1px] bg-slate-200" />
             

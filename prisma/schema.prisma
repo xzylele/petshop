@@ -38,6 +38,7 @@ model User {
   reviews   Review[]
   cart      Cart?
   bookings  Booking[]
+  notifications Notification[]
 }
 
 model Address {
@@ -283,6 +284,9 @@ model Booking {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  discount         Float     @default(0)
+  couponCode       String?
+
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 }
@@ -301,6 +305,8 @@ model Coupon {
   shopId        String?
   createdAt     DateTime    @default(now())
 
+  allowedCategory String    @default("ALL")
+
   shop          Shop?       @relation(fields: [shopId], references: [id], onDelete: Cascade)
 }
 
@@ -312,4 +318,17 @@ model Banner {
   linkUrl   String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
+}
+
+// -------- NOTIFICATION --------
+model Notification {
+  id        String   @id @default(cuid()) @map("_id")
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

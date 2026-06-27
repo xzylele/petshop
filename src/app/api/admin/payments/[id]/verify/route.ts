@@ -36,5 +36,21 @@ export async function PUT(_req: Request, { params }: { params: Promise<{ id: str
     });
   }
 
+  // ส่งแจ้งเตือนเมื่อระบบอนุมัติการชำระเงินเรียบร้อย
+  if (order) {
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: order.userId,
+          title: "✅ ได้รับชำระเงินแล้ว",
+          message: `ออเดอร์ #${order.id.slice(-8)} ได้รับการยืนยันชำระเงินเรียบร้อยแล้ว ร้านค้ากำลังดำเนินการเตรียมจัดส่ง`,
+          linkUrl: `/orders/${order.id}`
+        }
+      });
+    } catch (notifErr) {
+      console.error("Error creating payment verified notification:", notifErr);
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

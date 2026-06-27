@@ -32,23 +32,23 @@ export default function BookingFormClient({
   const router = useRouter();
 
   const SERVICES = [
-    { 
-      value: "GROOMING", 
-      label: "✂️ อาบน้ำตัดขน (Grooming)", 
-      basePrice: groomingPriceSmall, 
-      description: `คิดตามน้ำหนัก (<=5กก: ${groomingPriceSmall} บ. | 5.1-15กก: ${groomingPriceMedium} บ. | >15กก: ${groomingPriceLarge} บ.)` 
+    {
+      value: "GROOMING",
+      label: "✂️ อาบน้ำตัดขน (Grooming)",
+      basePrice: groomingPriceSmall,
+      description: `คิดตามน้ำหนัก (<=5กก: ${groomingPriceSmall} บ. | 5.1-15กก: ${groomingPriceMedium} บ. | >15กก: ${groomingPriceLarge} บ.)`
     },
-    { 
-      value: "SPA", 
-      label: "🛁 สปาสัตว์เลี้ยง (Pet Spa)", 
-      basePrice: spaPriceSmall, 
-      description: `คิดตามน้ำหนัก (<=5กก: ${spaPriceSmall} บ. | 5.1-15กก: ${spaPriceMedium} บ. | >15กก: ${spaPriceLarge} บ.)` 
+    {
+      value: "SPA",
+      label: "🛁 สปาสัตว์เลี้ยง (Pet Spa)",
+      basePrice: spaPriceSmall,
+      description: `คิดตามน้ำหนัก (<=5กก: ${spaPriceSmall} บ. | 5.1-15กก: ${spaPriceMedium} บ. | >15กก: ${spaPriceLarge} บ.)`
     },
-    { 
-      value: "PET_HOTEL", 
-      label: "🏨 รับฝากเลี้ยง (Pet Hotel)", 
-      basePrice: boardingPrice, 
-      description: `คิดตามจำนวนวัน (วันละ ${boardingPrice} บาท ห้องแอร์ สะอาด ปลอดภัย)` 
+    {
+      value: "PET_HOTEL",
+      label: "🏨 รับฝากเลี้ยง (Pet Hotel)",
+      basePrice: boardingPrice,
+      description: `คิดตามจำนวนวัน (วันละ ${boardingPrice} บาท ห้องแอร์ สะอาด ปลอดภัย)`
     }
   ];
 
@@ -60,7 +60,7 @@ export default function BookingFormClient({
   });
 
   const defaultService = allowsGrooming ? "GROOMING" : (allowsBoarding ? "PET_HOTEL" : "");
-  
+
   const [petName, setPetName] = useState("");
   const [petType, setPetType] = useState("สุนัข");
   const [serviceType, setServiceType] = useState(defaultService);
@@ -119,6 +119,12 @@ export default function BookingFormClient({
   const [checkInDate, setCheckInDate] = useState(getLocalDateString(0));
   const [checkOutDate, setCheckOutDate] = useState(getLocalDateString(1));
 
+  // --- Coupon states ---
+  const [couponCodeInput, setCouponCodeInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState("");
+
   // โหลดสล็อตเวลา/ความจุเมื่อข้อมูลเปลี่ยน
   useEffect(() => {
     if (!shopId || !selectedDate || !serviceType) return;
@@ -170,6 +176,42 @@ export default function BookingFormClient({
   let calculatedPrice = 0;
   let calculatedDays = 1;
 
+  // Coupon functions
+  async function handleApplyCoupon(code: string, currentPrice?: number) {
+    if (!code.trim()) return;
+    setValidatingCoupon(true);
+    setCouponError("");
+    const priceToCheck = currentPrice !== undefined ? currentPrice : calculatedPrice;
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          isBooking: true,
+          bookingPrice: priceToCheck,
+          shopId
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "ไม่สามารถใช้งานคูปองได้");
+      }
+      setAppliedCoupon(data);
+    } catch (err: any) {
+      setCouponError(err.message);
+      setAppliedCoupon(null);
+    } finally {
+      setValidatingCoupon(false);
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponCodeInput("");
+    setCouponError("");
+  }
+
   if (serviceType === "GROOMING") {
     const weight = Number(petWeight) || 0;
     if (weight <= 5) {
@@ -198,6 +240,13 @@ export default function BookingFormClient({
     }
     calculatedPrice = calculatedDays * boardingPrice;
   }
+
+  // Auto-revalidate coupon if price changes
+  useEffect(() => {
+    if (appliedCoupon) {
+      handleApplyCoupon(appliedCoupon.code, calculatedPrice);
+    }
+  }, [calculatedPrice]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -262,7 +311,8 @@ export default function BookingFormClient({
           notes,
           petWeight: (serviceType === "GROOMING" || serviceType === "SPA") ? Number(petWeight) : null,
           checkOutDateTime: serviceType === "PET_HOTEL" ? `${checkOutDate}T12:00` : null,
-          days: serviceType === "PET_HOTEL" ? calculatedDays : null
+          days: serviceType === "PET_HOTEL" ? calculatedDays : null,
+          couponCode: appliedCoupon?.code || null
         })
       });
 
@@ -271,7 +321,7 @@ export default function BookingFormClient({
         throw new Error(data.error || "เกิดข้อผิดพลาดในการจอง");
       }
 
-      router.push("/profile");
+      router.push("/bookings");
       router.refresh();
     } catch (err: any) {
       setError(err.message);
@@ -302,11 +352,10 @@ export default function BookingFormClient({
           {availableServices.map((s) => (
             <label
               key={s.value}
-              className={`block cursor-pointer rounded-xl border p-4 transition hover:bg-slate-50 ${
-                serviceType === s.value
+              className={`block cursor-pointer rounded-xl border p-4 transition hover:bg-slate-50 ${serviceType === s.value
                   ? "border-brand-500 bg-brand-50/20 ring-1 ring-brand-500 shadow-sm"
                   : "border-slate-200"
-              }`}
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -408,11 +457,10 @@ export default function BookingFormClient({
                       setSelectedDate(day.dateStr);
                       setSelectedTime("");
                     }}
-                    className={`flex flex-col items-center justify-center p-3 min-w-[76px] rounded-xl border transition-all ${
-                      isSelected
+                    className={`flex flex-col items-center justify-center p-3 min-w-[76px] rounded-xl border transition-all ${isSelected
                         ? "border-brand-500 bg-brand-500 text-white font-bold shadow-sm"
                         : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                    }`}
+                      }`}
                   >
                     <span className={`text-[10px] uppercase ${isSelected ? "text-brand-100" : "text-slate-400"}`}>
                       {day.dayLabel}
@@ -446,13 +494,12 @@ export default function BookingFormClient({
                       type="button"
                       disabled={!isAvailable}
                       onClick={() => setSelectedTime(slot.time)}
-                      className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs transition-all ${
-                        isSelected
+                      className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs transition-all ${isSelected
                           ? "border-brand-600 bg-brand-50 text-brand-700 font-bold ring-1 ring-brand-500"
                           : !isAvailable
-                          ? "border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                      }`}
+                            ? "border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                        }`}
                     >
                       <span className="font-semibold">{slot.time} น.</span>
                       <span className={`text-[10px] mt-0.5 ${!isAvailable ? "text-red-400" : isSelected ? "text-brand-600" : "text-slate-400"}`}>
@@ -563,9 +610,8 @@ export default function BookingFormClient({
                   return (
                     <div
                       key={day.date}
-                      className={`flex flex-col items-center justify-center p-1.5 rounded-lg border text-[10px] text-center ${colorClass} ${
-                        isSelectedDay ? "ring-2 ring-brand-500 scale-105 font-bold shadow-sm" : ""
-                      }`}
+                      className={`flex flex-col items-center justify-center p-1.5 rounded-lg border text-[10px] text-center ${colorClass} ${isSelectedDay ? "ring-2 ring-brand-500 scale-105 font-bold shadow-sm" : ""
+                        }`}
                     >
                       <span className="font-semibold">{day.date.split("-")[2]}</span>
                       <span className="scale-90 opacity-85">{booked}/{capacity}</span>
@@ -599,6 +645,54 @@ export default function BookingFormClient({
         />
       </div>
 
+      {/* ส่วนลด/คูปองบริการ */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
+        <label className="block text-xs font-bold text-slate-700 uppercase">🎟️ คูปองส่วนลดบริการ</label>
+
+        {appliedCoupon ? (
+          <div className="flex items-center justify-between bg-emerald-50 text-emerald-800 px-3 py-2.5 rounded-xl border border-emerald-200 text-xs">
+            <span className="font-bold uppercase flex items-center gap-1.5">
+              🎟️ {appliedCoupon.code} (ลด -{appliedCoupon.discount} บาท)
+            </span>
+            <button
+              type="button"
+              onClick={handleRemoveCoupon}
+              className="text-rose-600 hover:text-rose-800 font-bold"
+            >
+              ลบออก
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="กรอกโค้ดส่วนลดบริการ (เช่น SERVICE50)"
+                value={couponCodeInput}
+                onChange={(e) => {
+                  setCouponCodeInput(e.target.value.toUpperCase());
+                  setCouponError("");
+                }}
+                className="input text-xs w-full rounded-xl border-slate-200 uppercase"
+              />
+              <button
+                type="button"
+                disabled={validatingCoupon || !couponCodeInput.trim()}
+                onClick={() => handleApplyCoupon(couponCodeInput)}
+                className="px-4 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 disabled:bg-slate-200 rounded-xl shrink-0 transition"
+              >
+                {validatingCoupon ? "กำลังตรวจ..." : "ใช้โค้ด"}
+              </button>
+            </div>
+            {couponError && (
+              <p className="text-xs text-red-500 font-semibold flex items-center gap-1">
+                ⚠️ {couponError}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
       <hr className="border-slate-100" />
 
       {/* สรุปราคา */}
@@ -613,8 +707,18 @@ export default function BookingFormClient({
             {serviceType === "PET_HOTEL" && "🏨 บริการรับฝากเลี้ยง"}
           </p>
         </div>
-        <div className="text-right">
-          <span className="text-2xl font-black text-brand-600">{calculatedPrice} บาท</span>
+        <div className="text-right flex flex-col items-end">
+          {appliedCoupon ? (
+            <>
+              <span className="text-xs text-slate-400 line-through">{calculatedPrice} บาท</span>
+              <span className="text-2xl font-black text-brand-600">
+                {Math.max(0, calculatedPrice - appliedCoupon.discount)} บาท
+              </span>
+              <span className="text-[10px] text-emerald-600 font-bold">ประหยัดไป {appliedCoupon.discount} บาท</span>
+            </>
+          ) : (
+            <span className="text-2xl font-black text-brand-600">{calculatedPrice} บาท</span>
+          )}
         </div>
       </div>
 

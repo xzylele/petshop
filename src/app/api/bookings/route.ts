@@ -10,10 +10,10 @@ const BookingBodySchema = z.object({
   serviceType: z.enum(["GROOMING", "PET_HOTEL", "SPA"]),
   dateTime: z.string().transform((val) => new Date(val)),
   notes: z.string().optional(),
-  // ฟิลด์ใหม่สำหรับการคิดราคาพิเศษ
   petWeight: z.number().nullable().optional(),
   checkOutDateTime: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
-  days: z.number().int().nullable().optional()
+  days: z.number().int().nullable().optional(),
+  couponCode: z.string().nullable().optional()
 });
 
 // GET: ดึงรายการจองคิว (สำหรับลูกค้าของตัวเอง หรือสำหรับผู้ขายดึงตามร้าน)
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { shopId, petName, petType, serviceType, dateTime, notes, petWeight, checkOutDateTime, days } = parsed.data;
+    const { shopId, petName, petType, serviceType, dateTime, notes, petWeight, checkOutDateTime, days, couponCode } = parsed.data;
 
     // ตรวจสอบว่าร้านค้ามีอยู่จริง
     const shop = await prisma.shop.findUnique({ where: { id: shopId } });
@@ -136,7 +136,45 @@ export async function POST(req: Request) {
       price = boardingDays * shop.boardingPrice;
     }
 
-    // 3. ตรวจสอบโควตาความจุ (Capacity Check)
+    // 3. คำนวณคูปองส่วนลดในฝั่งหลังบ้าน (Backend Validation)
+    let discount = 0;
+    let validatedCouponCode: string | null = null;
+
+    if (couponCode) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: couponCode.toUpperCase().trim() }
+      });
+
+      if (
+        coupon &&
+        coupon.isActive &&
+        new Date(coupon.endDate) >= new Date() &&
+        (coupon.allowedCategory === "SERVICE" || coupon.allowedCategory === "ALL")
+      ) {
+        // หากคูปองผูกกับร้านค้า ต้องเป็นของร้านค้านี้
+        if (!coupon.shopId || coupon.shopId === shopId) {
+          if (price >= coupon.minPurchase) {
+            validatedCouponCode = coupon.code;
+            if (coupon.discountType === "PERCENTAGE") {
+              discount = (price * coupon.discountValue) / 100;
+              if (coupon.maxDiscount && discount > coupon.maxDiscount) {
+                discount = coupon.maxDiscount;
+              }
+            } else {
+              discount = coupon.discountValue;
+            }
+
+            if (discount > price) {
+              discount = price;
+            }
+          }
+        }
+      }
+    }
+
+    const finalPrice = Math.max(0, price - discount);
+
+    // 4. ตรวจสอบโควตาความจุ (Capacity Check)
     if (serviceType === "GROOMING" || serviceType === "SPA") {
       const existingCount = await prisma.booking.count({
         where: {
@@ -196,13 +234,40 @@ export async function POST(req: Request) {
         serviceType,
         dateTime,
         notes,
-        price,
+        price: finalPrice,
+        discount,
+        couponCode: validatedCouponCode,
         status: "PENDING",
         petWeight: (serviceType === "GROOMING" || serviceType === "SPA") ? petWeight : null,
         checkOutDateTime: serviceType === "PET_HOTEL" ? checkOutDateTime : null,
         days: serviceType === "PET_HOTEL" ? days : null
       }
     });
+
+    // ส่งแจ้งเตือนถึงร้านค้า (ผู้ประกอบการ)
+    try {
+      const serviceNameTH = 
+        serviceType === "GROOMING" ? "อาบน้ำตัดขน" :
+        serviceType === "SPA" ? "สปาสัตว์เลี้ยง" :
+        serviceType === "PET_HOTEL" ? "ฝากเลี้ยง (โรงแรม)" : "บริการ";
+        
+      const dateFormatted = new Date(dateTime).toLocaleDateString("th-TH", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: shop.ownerId,
+          title: "🗓️ มีการจองบริการใหม่!",
+          message: `สัตว์เลี้ยง: ${petName} (${petType}), บริการ: ${serviceNameTH}, นัดหมายวันที่: ${dateFormatted} ยอดราคา: ${finalPrice} บาท`,
+          linkUrl: "/shop/bookings"
+        }
+      });
+    } catch (notifErr) {
+      console.error("Error creating booking notification:", notifErr);
+    }
 
     return NextResponse.json({ ok: true, booking });
   } catch (err: any) {

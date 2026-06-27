@@ -50,6 +50,7 @@ export default async function CheckoutPage() {
     where: {
       isActive: true,
       endDate: { gte: new Date() },
+      allowedCategory: { in: ["ALL", "PRODUCT", "ANIMAL"] },
       OR: [
         { shopId: { in: shopIds } },
         { shopId: null }
@@ -83,7 +84,8 @@ export default async function CheckoutPage() {
           discountValue: c.discountValue,
           minPurchase: c.minPurchase,
           maxDiscount: c.maxDiscount,
-          shopName: c.shop?.name ?? "ส่วนลดส่วนกลาง"
+          shopName: c.shop?.name ?? "ส่วนลดส่วนกลาง",
+          allowedCategory: c.allowedCategory as any
         }))}
       />
     </div>

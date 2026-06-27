@@ -8,6 +8,28 @@ export async function PUT(_req: Request, { params }: { params: Promise<{ id: str
   const g = await requireAdmin();
   if (!g.ok) return g.response;
   const { id } = await params;
-  await prisma.payment.update({ where: { id }, data: { status: "REJECTED" } });
+  
+  const payment = await prisma.payment.update({ 
+    where: { id }, 
+    data: { status: "REJECTED" },
+    include: { order: true }
+  });
+
+  // ส่งแจ้งเตือนเมื่อระบบปฏิเสธการชำระเงิน
+  if (payment.order) {
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: payment.order.userId,
+          title: "⚠️ การชำระเงินไม่ถูกต้อง",
+          message: `การชำระเงินของออเดอร์ #${payment.orderId.slice(-8)} ถูกปฏิเสธเนื่องจากความผิดพลาดของสลิป กรุณาตรวจสอบและอัปโหลดสลิปใหม่อีกครั้ง`,
+          linkUrl: `/orders/${payment.orderId}`
+        }
+      });
+    } catch (notifErr) {
+      console.error("Error creating payment rejected notification:", notifErr);
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

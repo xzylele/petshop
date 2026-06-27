@@ -132,8 +132,20 @@ export default async function ShopBookingsPage() {
 
                   <div className="flex flex-col items-end gap-3 justify-between border-t border-slate-50 pt-3 md:border-0 md:pt-0">
                     <div className="text-right">
-                      <span className="text-xs text-slate-500">ค่าบริการเริ่มต้น</span>
-                      <p className="text-lg font-bold text-brand-600">{b.price} บาท</p>
+                      <span className="text-xs text-slate-500">ค่าบริการ</span>
+                      {b.discount && b.discount > 0 ? (
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] text-slate-450 line-through">
+                            {(b.price + b.discount)} บาท
+                          </span>
+                          <span className="text-lg font-bold text-brand-600">{b.price} บาท</span>
+                          <span className="text-[9px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded mt-0.5 uppercase">
+                            โค้ด: {b.couponCode} (-{b.discount})
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-lg font-bold text-brand-600">{b.price} บาท</p>
+                      )}
                     </div>
                     <BookingActionsClient booking={b} />
                   </div>

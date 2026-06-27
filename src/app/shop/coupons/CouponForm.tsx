@@ -11,6 +11,7 @@ interface Coupon {
   maxDiscount: number | null;
   endDate: string;
   isActive?: boolean;
+  allowedCategory?: "ALL" | "PRODUCT" | "ANIMAL" | "SERVICE";
 }
 
 interface CouponFormProps {
@@ -38,6 +39,9 @@ export default function CouponForm({ initialData, onSave, onCancel }: CouponForm
   );
   const [isActive, setIsActive] = useState<boolean>(
     initialData?.isActive !== undefined ? initialData.isActive : true
+  );
+  const [allowedCategory, setAllowedCategory] = useState<"ALL" | "PRODUCT" | "ANIMAL" | "SERVICE">(
+    initialData?.allowedCategory || "ALL"
   );
 
   const [loading, setLoading] = useState(false);
@@ -69,7 +73,8 @@ export default function CouponForm({ initialData, onSave, onCancel }: CouponForm
       minPurchase: Number(minPurchase),
       maxDiscount: maxDiscount ? Number(maxDiscount) : null,
       endDate,
-      isActive
+      isActive,
+      allowedCategory
     };
 
     try {
@@ -107,7 +112,7 @@ export default function CouponForm({ initialData, onSave, onCancel }: CouponForm
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         {/* รหัสคูปอง */}
         <div>
           <label className="block text-xs font-bold text-slate-700 uppercase" htmlFor="code">
@@ -138,6 +143,24 @@ export default function CouponForm({ initialData, onSave, onCancel }: CouponForm
           >
             <option value="PERCENTAGE">เปอร์เซ็นต์ (%)</option>
             <option value="FIXED">จำนวนเงินคงที่ (บาท)</option>
+          </select>
+        </div>
+
+        {/* หมวดหมู่ที่ร่วมรายการ */}
+        <div>
+          <label className="block text-xs font-bold text-slate-700 uppercase" htmlFor="allowedCategory">
+            หมวดหมู่ที่ร่วมรายการ
+          </label>
+          <select
+            id="allowedCategory"
+            value={allowedCategory}
+            onChange={(e) => setAllowedCategory(e.target.value as any)}
+            className="input mt-1 w-full"
+          >
+            <option value="ALL">ลดทั้งหมด (สินค้า/สัตว์/บริการ)</option>
+            <option value="PRODUCT">ลดเฉพาะสินค้าเท่านั้น</option>
+            <option value="ANIMAL">ลดเฉพาะสัตว์เลี้ยงเท่านั้น</option>
+            <option value="SERVICE">ลดเฉพาะบริการจองคิวเท่านั้น</option>
           </select>
         </div>
       </div>

@@ -13,7 +13,8 @@ const CouponSchema = z.object({
   minPurchase: z.number().nonnegative().default(0),
   maxDiscount: z.number().nonnegative().optional().nullable(),
   endDate: z.string().transform((val) => new Date(val)),
-  isActive: z.boolean().default(true)
+  isActive: z.boolean().default(true),
+  allowedCategory: z.enum(["ALL", "PRODUCT", "ANIMAL", "SERVICE"]).optional().default("ALL")
 });
 
 // GET: ดึงรายการคูปองส่วนลดกลางของระบบ (สำหรับแอดมิน)

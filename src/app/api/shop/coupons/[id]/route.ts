@@ -9,7 +9,8 @@ const UpdateCouponSchema = z.object({
   minPurchase: z.number().nonnegative().optional().default(0),
   maxDiscount: z.number().positive().nullable().optional(),
   endDate: z.string().transform(val => new Date(val)),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  allowedCategory: z.enum(["ALL", "PRODUCT", "ANIMAL", "SERVICE"]).optional()
 });
 
 // PUT: อัปเดตคูปอง

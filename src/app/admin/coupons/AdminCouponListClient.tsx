@@ -13,6 +13,7 @@ interface Coupon {
   maxDiscount: number | null;
   endDate: string;
   isActive: boolean;
+  allowedCategory?: "ALL" | "PRODUCT" | "ANIMAL" | "SERVICE";
 }
 
 export default function AdminCouponListClient({ initialCoupons }: { initialCoupons: Coupon[] }) {
@@ -33,7 +34,8 @@ export default function AdminCouponListClient({ initialCoupons }: { initialCoupo
     minPurchase: 0,
     maxDiscount: "" as string | number,
     endDate: "",
-    isActive: true
+    isActive: true,
+    allowedCategory: "ALL" as "ALL" | "PRODUCT" | "ANIMAL" | "SERVICE"
   });
 
   function openCreate() {
@@ -49,7 +51,8 @@ export default function AdminCouponListClient({ initialCoupons }: { initialCoupo
       minPurchase: 300,
       maxDiscount: "",
       endDate: dateStr,
-      isActive: true
+      isActive: true,
+      allowedCategory: "ALL"
     });
     setEditingId(null);
     setError(null);
@@ -64,7 +67,8 @@ export default function AdminCouponListClient({ initialCoupons }: { initialCoupo
       minPurchase: c.minPurchase,
       maxDiscount: c.maxDiscount ?? "",
       endDate: c.endDate.split("T")[0],
-      isActive: c.isActive
+      isActive: c.isActive,
+      allowedCategory: c.allowedCategory || "ALL"
     });
     setEditingId(c.id);
     setError(null);
@@ -120,7 +124,8 @@ export default function AdminCouponListClient({ initialCoupons }: { initialCoupo
       minPurchase: Number(form.minPurchase),
       maxDiscount: form.maxDiscount !== "" ? Number(form.maxDiscount) : null,
       endDate: new Date(form.endDate).toISOString(),
-      isActive: form.isActive
+      isActive: form.isActive,
+      allowedCategory: form.allowedCategory
     };
 
     try {
@@ -154,7 +159,8 @@ export default function AdminCouponListClient({ initialCoupons }: { initialCoupo
           minPurchase: data.coupon.minPurchase,
           maxDiscount: data.coupon.maxDiscount,
           endDate: data.coupon.endDate,
-          isActive: data.coupon.isActive
+          isActive: data.coupon.isActive,
+          allowedCategory: data.coupon.allowedCategory
         };
         setCoupons((prev) => [newCoupon, ...prev]);
       }
@@ -250,6 +256,15 @@ export default function AdminCouponListClient({ initialCoupons }: { initialCoupo
                     <p className="flex justify-between">
                       <span className="text-slate-450">ขั้นต่ำในการซื้อ:</span>
                       <span className="font-bold">{c.minPurchase} บาท</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-slate-450">หมวดหมู่ร่วมรายการ:</span>
+                      <span className="font-bold text-brand-600">
+                        {c.allowedCategory === "PRODUCT" && "สินค้าเท่านั้น"}
+                        {c.allowedCategory === "ANIMAL" && "สัตว์เลี้ยงเท่านั้น"}
+                        {c.allowedCategory === "SERVICE" && "บริการจองคิวเท่านั้น"}
+                        {(c.allowedCategory === "ALL" || !c.allowedCategory) && "ทั้งหมด"}
+                      </span>
                     </p>
                     {isPercentage && c.maxDiscount && (
                       <p className="flex justify-between">
@@ -398,17 +413,36 @@ export default function AdminCouponListClient({ initialCoupons }: { initialCoupo
                     className="input w-full rounded-xl border-slate-200"
                   />
                 </div>
-                <div className="flex flex-col justify-end">
-                  <label className="flex items-center gap-2 font-bold text-slate-700 mb-2 cursor-pointer pb-2">
-                    <input
-                      type="checkbox"
-                      checked={form.isActive}
-                      onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                      className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4.5 w-4.5"
-                    />
-                    <span>เปิดใช้งานทันที</span>
-                  </label>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">หมวดหมู่ร่วมรายการ *</label>
+                  <select
+                    value={form.allowedCategory}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        allowedCategory: e.target.value as any
+                      }))
+                    }
+                    className="input w-full rounded-xl border-slate-200 bg-white"
+                  >
+                    <option value="ALL">ลดทั้งหมด (สินค้า/สัตว์/บริการ)</option>
+                    <option value="PRODUCT">ลดเฉพาะสินค้าเท่านั้น</option>
+                    <option value="ANIMAL">ลดเฉพาะสัตว์เลี้ยงเท่านั้น</option>
+                    <option value="SERVICE">ลดเฉพาะบริการจองคิวเท่านั้น</option>
+                  </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 font-bold text-slate-700 cursor-pointer py-1">
+                  <input
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                    className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4.5 w-4.5"
+                  />
+                  <span>เปิดใช้งานคูปองนี้ทันที</span>
+                </label>
               </div>
 
               {/* Footer Actions */}

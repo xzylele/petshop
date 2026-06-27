@@ -106,5 +106,31 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
   }
 
+  // ส่งแจ้งเตือนถึงลูกค้าเมื่อสถานะออเดอร์มีการอัปเดต
+  try {
+    if (newStatus === "SHIPPED") {
+      const tracking = parsed.data.trackingNumber;
+      await prisma.notification.create({
+        data: {
+          userId: order.userId,
+          title: "📦 พัสดุของคุณถูกจัดส่งแล้ว!",
+          message: `ออเดอร์ #${order.id.slice(-8)} ได้ถูกจัดส่งแล้ว ${tracking ? `เลขพัสดุ: ${tracking}` : ""}`,
+          linkUrl: `/orders/${order.id}`
+        }
+      });
+    } else if (newStatus === "CANCELLED") {
+      await prisma.notification.create({
+        data: {
+          userId: order.userId,
+          title: "❌ ออเดอร์ของคุณถูกยกเลิก",
+          message: `ออเดอร์ #${order.id.slice(-8)} ถูกยกเลิกเรียบร้อยแล้ว`,
+          linkUrl: `/orders/${order.id}`
+        }
+      });
+    }
+  } catch (notifErr) {
+    console.error("Error creating order status update notification:", notifErr);
+  }
+
   return NextResponse.json({ ok: true });
 }

@@ -36,7 +36,22 @@ export async function POST(req: Request) {
   // ดึงตะกร้าสินค้า
   const cart = await prisma.cart.findUnique({
     where: { userId: session.user.id },
-    include: { items: { include: { product: true, animal: true } } }
+    include: {
+      items: {
+        include: {
+          product: {
+            include: {
+              shop: {
+                select: {
+                  ownerId: true
+                }
+              }
+            }
+          },
+          animal: true
+        }
+      }
+    }
   });
   if (!cart || cart.items.length === 0) {
     return NextResponse.json({ error: "ตะกร้าว่าง" }, { status: 400 });
@@ -81,19 +96,32 @@ export async function POST(req: Request) {
       where: { code: couponCode.toUpperCase().trim() }
     });
 
-    if (coupon && coupon.isActive && new Date(coupon.endDate) >= new Date()) {
-      let applicableSubtotal = 0;
+    if (
+      coupon &&
+      coupon.isActive &&
+      new Date(coupon.endDate) >= new Date() &&
+      coupon.allowedCategory !== "SERVICE" // คูปองประเภทบริการใช้ในการสั่งซื้อสินค้าไม่ได้
+    ) {
+      let applicableItems = cart.items;
 
+      // กรองเฉพาะร้านค้า (ถ้าผูกกับร้านค้า)
       if (coupon.shopId) {
-        // เฉพาะสินค้าของร้านค้านั้น ๆ
-        const shopItems = cart.items.filter(
+        applicableItems = applicableItems.filter(
           (it) => it.product && it.product.shopId === coupon.shopId
         );
-        applicableSubtotal = shopItems.reduce((s, it) => s + (it.product?.price || 0) * it.quantity, 0);
-      } else {
-        // ส่วนกลาง ใช้ได้กับทั้งหมด
-        applicableSubtotal = total;
       }
+
+      // กรองตามหมวดหมู่
+      if (coupon.allowedCategory === "PRODUCT") {
+        applicableItems = applicableItems.filter((it) => it.product);
+      } else if (coupon.allowedCategory === "ANIMAL") {
+        applicableItems = applicableItems.filter((it) => it.animal);
+      }
+
+      const applicableSubtotal = applicableItems.reduce(
+        (s, it) => s + (it.product?.price ?? it.animal?.price ?? 0) * it.quantity,
+        0
+      );
 
       if (applicableSubtotal >= coupon.minPurchase) {
         validatedCouponCode = coupon.code;
@@ -172,6 +200,60 @@ export async function POST(req: Request) {
 
     // เคลียร์ตะกร้าสินค้า
     await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+    // ส่งแจ้งเตือนถึงร้านค้าและแอดมิน
+    try {
+      const shopSales: Record<string, { ownerId: string; total: number }> = {};
+      let hasAnimals = false;
+
+      for (const it of cart.items) {
+        if (it.product && it.product.shop) {
+          const ownerId = it.product.shop.ownerId;
+          const price = it.product.price * it.quantity;
+          if (!shopSales[ownerId]) {
+            shopSales[ownerId] = { ownerId, total: 0 };
+          }
+          shopSales[ownerId].total += price;
+        } else if (it.animal) {
+          hasAnimals = true;
+        }
+      }
+
+      // 1. แจ้งเตือนเจ้าของร้านค้าต่าง ๆ
+      for (const ownerId of Object.keys(shopSales)) {
+        const sale = shopSales[ownerId];
+        await tx.notification.create({
+          data: {
+            userId: sale.ownerId,
+            title: "🚨 มีคำสั่งซื้อสินค้าใหม่เข้ามา!",
+            message: `ออเดอร์ #${created.id.slice(-8)} มีสินค้าของคุณถูกสั่งซื้อรวม ${sale.total} บาท`,
+            linkUrl: "/shop/orders"
+          }
+        });
+      }
+
+      // 2. แจ้งเตือนแอดมินถ้ามีสัตว์เลี้ยงถูกซื้อ
+      if (hasAnimals) {
+        const admins = await tx.user.findMany({
+          where: { role: "ADMIN" },
+          select: { id: true }
+        });
+        for (const admin of admins) {
+          await tx.notification.create({
+            data: {
+              userId: admin.id,
+              title: "🦁 มีการซื้อสัตว์เลี้ยงใหม่!",
+              message: `ออเดอร์ #${created.id.slice(-8)} มีการสั่งซื้อสัตว์เลี้ยงจากระบบ กรุณาตรวจสอบการจัดส่ง`,
+              linkUrl: "/admin/orders"
+            }
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("Error creating order notifications:", notifErr);
+      // ไม่ย้อนกลับทรานแซกชันหลักหากแค่ส่งแจ้งเตือนล้มเหลว
+    }
+
     return created;
   });
 
