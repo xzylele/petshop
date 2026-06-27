@@ -113,7 +113,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                       <p className="font-medium">โอนเงินเข้าบัญชี</p>
                       <p>ธนาคาร: กสิกรไทย</p>
                       <p>เลขบัญชี: 123-4-56789-0</p>
-                      <p>ชื่อบัญชี: PetsShop Co., Ltd.</p>
+                      <p>ชื่อบัญชี: Petkub Co., Ltd.</p>
                     </>
                   )}
                 </div>

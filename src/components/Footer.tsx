@@ -17,7 +17,7 @@ export default function Footer() {
         <div>
           <div className="flex items-center gap-2 text-brand-700">
             <span className="text-2xl">🐾</span>
-            <span className="text-lg font-bold">PetsShop</span>
+            <span className="text-lg font-black tracking-tight">Petkub</span>
           </div>
           <p className="mt-2">Marketplace สำหรับคนรักสัตว์ ครบจบในที่เดียว</p>
         </div>
@@ -36,7 +36,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-slate-100 py-4 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} PetsShop. All rights reserved.
+        © {new Date().getFullYear()} Petkub. All rights reserved.
       </div>
     </footer>
   );

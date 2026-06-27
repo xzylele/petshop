@@ -23,7 +23,7 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-2xl">🐾</span>
-          <span className="text-lg font-bold text-brand-700">PetsShop</span>
+          <span className="text-lg font-black tracking-tight text-brand-750">Petkub</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">

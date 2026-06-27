@@ -10,7 +10,9 @@ import {
   PawPrint, 
   Home, 
   ClipboardList, 
-  CreditCard 
+  CreditCard,
+  Image as ImageIcon,
+  Ticket
 } from "lucide-react";
 
 interface MenuItem {
@@ -23,6 +25,8 @@ const menuItems: MenuItem[] = [
   { href: "/admin/dashboard", label: "ภาพรวมระบบ", icon: LayoutDashboard },
   { href: "/admin/users", label: "จัดการผู้ใช้", icon: Users },
   { href: "/admin/shops", label: "จัดการร้านค้า", icon: Store },
+  { href: "/admin/banners", label: "จัดการแบนเนอร์", icon: ImageIcon },
+  { href: "/admin/coupons", label: "จัดการคูปอง", icon: Ticket },
   { href: "/admin/products", label: "จัดการสินค้า", icon: ShoppingBag },
   { href: "/admin/animals", label: "จัดการสัตว์เลี้ยง", icon: PawPrint },
   { href: "/admin/farms", label: "จัดการฟาร์ม", icon: Home },

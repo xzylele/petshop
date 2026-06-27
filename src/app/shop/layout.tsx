@@ -33,7 +33,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
               <Store className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-base font-bold tracking-tight text-slate-900">PetsShop Merchant</span>
+              <span className="text-base font-bold tracking-tight text-slate-900">Petkub Merchant</span>
               <span className="ml-2 rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 uppercase border border-brand-100">Shop</span>
             </div>
           </div>

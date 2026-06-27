@@ -304,3 +304,12 @@ model Coupon {
   shop          Shop?       @relation(fields: [shopId], references: [id], onDelete: Cascade)
 }
 
+model Banner {
+  id        String   @id @default(cuid()) @map("_id")
+  title     String
+  subtitle  String?
+  imageUrl  String
+  linkUrl   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}

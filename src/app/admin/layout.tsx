@@ -24,7 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-base font-bold tracking-tight text-slate-900">PetsShop Portal</span>
+              <span className="text-base font-bold tracking-tight text-slate-900">Petkub Portal</span>
               <span className="ml-2 rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 uppercase border border-rose-100">Admin</span>
             </div>
           </div>

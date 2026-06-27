@@ -4,12 +4,13 @@ import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/ProductCard";
 import AnimalCard from "@/components/AnimalCard";
 import FarmCard from "@/components/FarmCard";
+import BannerSlider from "@/components/BannerSlider";
 
 export const dynamic = "force-dynamic";
 
 // โหลดข้อมูลแนะนำจากฐานข้อมูลแล้วเรนเดอร์การ์ด
 export default async function HomePage() {
-  const [featuredProducts, featuredAnimals, featuredFarms] = await Promise.all([
+  const [featuredProducts, featuredAnimals, featuredFarms, banners] = await Promise.all([
     prisma.product.findMany({
       where: { 
         status: "ACTIVE",
@@ -35,27 +36,16 @@ export default async function HomePage() {
       where: { status: "ACTIVE" },
       orderBy: { createdAt: "desc" },
       take: 3
+    }),
+    prisma.banner.findMany({
+      orderBy: { order: "asc" }
     })
   ]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      {/* Hero */}
-      <section className="rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 px-6 py-12 text-white md:px-12">
-        <div className="grid items-center gap-8 md:grid-cols-2">
-          <div>
-            <h1 className="text-3xl font-bold leading-tight md:text-5xl">ทุกอย่างเพื่อสัตว์เลี้ยงของคุณ</h1>
-            <p className="mt-3 text-brand-50">อาหาร ของเล่น อุปกรณ์ ที่นอน และฟาร์มเพาะพันธุ์มาตรฐาน ครบจบในที่เดียว</p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/products" className="rounded-lg bg-white px-5 py-3 font-semibold text-brand-700 hover:bg-brand-50">ดูสินค้า</Link>
-              <Link href="/animals" className="rounded-lg border border-white/40 px-5 py-3 font-semibold text-white hover:bg-white/10">ดูสัตว์เลี้ยง</Link>
-            </div>
-          </div>
-          <div className="hidden text-center md:block">
-            <div className="text-[10rem] leading-none">🐶🐱🐰</div>
-          </div>
-        </div>
-      </section>
+    <div className="mx-auto max-w-7xl px-4 py-8 space-y-8">
+      {/* Hero Banner Slider */}
+      <BannerSlider banners={banners} />
 
       {/* Categories quick access */}
       <section className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4">

@@ -78,7 +78,7 @@ export default function SlipUploadForm({ orderId, amount }: SlipUploadFormProps)
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 16px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("PetsShop Marketplace", 200, 38);
+    ctx.fillText("Petkub Marketplace", 200, 38);
 
     ctx.fillStyle = "#0f766e";
     ctx.font = "bold 18px sans-serif";
@@ -122,7 +122,7 @@ export default function SlipUploadForm({ orderId, amount }: SlipUploadFormProps)
     ctx.fillText("ไปยัง", 45, 240);
     ctx.fillStyle = "#0f766e";
     ctx.font = "bold 13px sans-serif";
-    ctx.fillText("บริษัท เพ็ทส์ช็อป จำกัด (PetsShop Co., Ltd.)", 45, 259);
+    ctx.fillText("บริษัท เพ็ทส์คลับ จำกัด (Petkub Co., Ltd.)", 45, 259);
     ctx.fillStyle = "#64748b";
     ctx.font = "11px sans-serif";
     ctx.fillText("พร้อมเพย์: 000-000-0000", 45, 275);
@@ -209,7 +209,7 @@ export default function SlipUploadForm({ orderId, amount }: SlipUploadFormProps)
     ctx.fillStyle = "#94a3b8";
     ctx.font = "9px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("จำลองสลิปเพื่อทดสอบการจ่ายเงิน PetsShop Sandbox เท่านั้น", 200, 522);
+    ctx.fillText("จำลองสลิปเพื่อทดสอบการจ่ายเงิน Petkub Sandbox เท่านั้น", 200, 522);
 
     // 8. ดึงข้อมูลรูปภาพและเซ็ตลง State
     const dataUrl = canvas.toDataURL("image/png");

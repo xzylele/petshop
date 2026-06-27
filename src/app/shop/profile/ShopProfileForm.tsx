@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Upload } from "lucide-react";
 
 type Initial = { 
   name: string; 
@@ -53,6 +54,31 @@ export default function ShopProfileForm({ initial }: { initial: Initial }) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>, fieldName: "coverUrl" | "logoUrl") {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingField(fieldName);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "อัปโหลดรูปภาพล้มเหลว");
+      up(fieldName, data.url);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setUploadingField(null);
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -97,15 +123,48 @@ export default function ShopProfileForm({ initial }: { initial: Initial }) {
         <input className="input" value={form.address} onChange={(e) => up("address", e.target.value)} />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">URL รูปหน้าร้าน (cover)</label>
-          <input className="input" value={form.coverUrl} onChange={(e) => up("coverUrl", e.target.value)} />
+        <div className="space-y-2">
+          <label className="block text-xs font-bold text-slate-700 uppercase">แบนเนอร์หน้าร้าน (Cover Banner)</label>
+          <div className="flex gap-2">
+            <input className="input w-full" placeholder="ใส่ URL แบนเนอร์ หรืออัปโหลดไฟล์ภาพ" value={form.coverUrl} onChange={(e) => up("coverUrl", e.target.value)} />
+            <label className="cursor-pointer shrink-0 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold flex items-center gap-1.5 text-slate-750 transition">
+              <Upload className="w-4 h-4 text-slate-500" />
+              <span>{uploadingField === "coverUrl" ? "กำลังอัปโหลด..." : "อัปโหลดภาพ"}</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, "coverUrl")} disabled={uploadingField !== null} />
+            </label>
+          </div>
         </div>
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">URL โลโก้</label>
-          <input className="input" value={form.logoUrl} onChange={(e) => up("logoUrl", e.target.value)} />
+        <div className="space-y-2">
+          <label className="block text-xs font-bold text-slate-700 uppercase">โลโก้ร้านค้า (Shop Logo)</label>
+          <div className="flex gap-2">
+            <input className="input w-full" placeholder="ใส่ URL โลโก้ หรืออัปโหลดไฟล์ภาพ" value={form.logoUrl} onChange={(e) => up("logoUrl", e.target.value)} />
+            <label className="cursor-pointer shrink-0 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold flex items-center gap-1.5 text-slate-750 transition">
+              <Upload className="w-4 h-4 text-slate-500" />
+              <span>{uploadingField === "logoUrl" ? "กำลังอัปโหลด..." : "อัปโหลดภาพ"}</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, "logoUrl")} disabled={uploadingField !== null} />
+            </label>
+          </div>
         </div>
       </div>
+
+      {/* Live Preview หน้าร้านของตัวเอง */}
+      {(form.coverUrl.startsWith("http") || form.logoUrl.startsWith("http")) && (
+        <div className="rounded-xl border border-dashed border-slate-200 p-3 bg-slate-50/50 space-y-2">
+          <span className="text-[10px] text-slate-400 font-bold block">พรีวิวรูปภาพแบนเนอร์และโลโก้ร้าน:</span>
+          <div className="relative aspect-[16/5] rounded-xl overflow-hidden border border-slate-100 bg-white">
+            {form.coverUrl.startsWith("http") && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.coverUrl} alt="Cover Preview" className="w-full h-full object-cover" />
+            )}
+            {form.logoUrl.startsWith("http") && (
+              <div className="absolute bottom-3 left-3 w-12 h-12 rounded-full border-2 border-white overflow-hidden shadow-sm bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.logoUrl} alt="Logo Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* เลือกบริการที่เปิดจอง */}
       <div className="border-t border-slate-100 pt-4 space-y-4">

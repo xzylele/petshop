@@ -7,7 +7,7 @@ import { SessionProvider } from "next-auth/react";
 import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "PetsShop — Marketplace สำหรับสัตว์เลี้ยง",
+  title: "Petkub — Marketplace สำหรับสัตว์เลี้ยง",
   description: "ตลาดสินค้าและสัตว์เลี้ยงครบวงจร อาหาร ของเล่น อุปกรณ์ และฟาร์มเพาะพันธุ์"
 };
 
