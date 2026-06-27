@@ -13,6 +13,11 @@ export default async function CheckoutPage() {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/checkout");
 
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { addresses: { orderBy: { isDefault: "desc" } } }
+  });
+
   const cart = await prisma.cart.findUnique({
     where: { userId: session.user.id },
     include: {
@@ -42,7 +47,7 @@ export default async function CheckoutPage() {
       <h1 className="mb-6 text-2xl font-bold text-slate-800">ชำระเงิน</h1>
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2">
-          <CheckoutForm />
+          <CheckoutForm addresses={user?.addresses ?? []} />
         </div>
         <aside className="card h-fit p-4">
           <h2 className="mb-3 text-lg font-semibold">สรุปคำสั่งซื้อ</h2>

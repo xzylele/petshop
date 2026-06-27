@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatTHB, formatDate, ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/utils";
 import SlipUploadForm from "./SlipUploadForm";
+import CancelOrderButton from "./CancelOrderButton";
 import { Truck } from "lucide-react";
 import OrderRealtimeTracker from "@/components/OrderRealtimeTracker";
 
@@ -135,6 +136,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           ) : (
             <p className="text-sm text-slate-500">ไม่มีข้อมูลการชำระเงิน</p>
           )}
+          <CancelOrderButton orderId={order.id} initialStatus={order.status} />
         </aside>
       </div>
     </div>

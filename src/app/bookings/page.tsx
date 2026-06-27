@@ -65,14 +65,23 @@ const STATUS_INFO: Record<string, { label: string; badgeClass: string }> = {
   }
 };
 
-export default async function CustomerBookingsPage() {
+export default async function CustomerBookingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const session = await auth();
   if (!session?.user) {
     redirect("/login?callbackUrl=/bookings");
   }
 
+  const sp = await searchParams;
+  const activeTab = sp.tab || "all";
+
+  // กำหนดเงื่อนไขฟิลเตอร์ตามสถานะแท็บ
+  const where: any = { userId: session.user.id };
+  if (activeTab !== "all") {
+    where.status = activeTab;
+  }
+
   const bookings = await prisma.booking.findMany({
-    where: { userId: session.user.id },
+    where,
     include: {
       shop: {
         select: {
@@ -87,10 +96,18 @@ export default async function CustomerBookingsPage() {
     }
   });
 
+  const tabs = [
+    { id: "all", label: "ทั้งหมด" },
+    { id: "PENDING", label: "รอการยืนยัน" },
+    { id: "CONFIRMED", label: "ยืนยันแล้ว" },
+    { id: "COMPLETED", label: "เสร็จสิ้นบริการ" },
+    { id: "CANCELLED", label: "ยกเลิกแล้ว" }
+  ];
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-6">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">การจองคิวของฉัน</h1>
           <p className="text-slate-500 mt-1">ประวัติการนัดหมาย อาบน้ำตัดขน ฝากเลี้ยง สปา และรับวัคซีนของสัตว์เลี้ยงของคุณ</p>
@@ -103,13 +120,39 @@ export default async function CustomerBookingsPage() {
         </div>
       </div>
 
+      {/* แถบแท็บฟิลเตอร์สถานะการจอง */}
+      <div className="mb-6 border-b border-slate-200">
+        <nav className="-mb-px flex gap-6 overflow-x-auto pb-1" aria-label="Bookings status tabs">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <Link
+                key={tab.id}
+                href={tab.id === "all" ? "/bookings" : `/bookings?tab=${tab.id}`}
+                className={`pb-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${
+                  isActive
+                    ? "border-brand-600 text-brand-700 font-bold"
+                    : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
       {bookings.length === 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-12 text-center max-w-xl mx-auto shadow-sm mt-8">
           <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
             <Calendar className="w-8 h-8" />
           </div>
-          <h2 className="text-lg font-bold text-slate-800 mb-1">ยังไม่มีประวัติการจองคิว</h2>
-          <p className="text-sm text-slate-500 mb-6">คุณยังไม่ได้ทำการจองคิวบริการใดๆ เริ่มต้นจองคิวบริการสัตว์เลี้ยงกับร้านค้าพันธมิตรของเราได้เลย</p>
+          <h2 className="text-lg font-bold text-slate-800 mb-1">ไม่พบข้อมูลการจองคิว</h2>
+          <p className="text-sm text-slate-500 mb-6">
+            {activeTab === "all"
+              ? "คุณยังไม่ได้ทำการจองคิวบริการใดๆ เริ่มต้นจองคิวบริการสัตว์เลี้ยงกับร้านค้าพันธมิตรของเราได้เลย"
+              : "ไม่พบประวัติการจองคิวที่ตรงกับสถานะนี้"}
+          </p>
           <Link href="/shops" className="btn-primary inline-flex items-center gap-2">
             ดูร้านค้าที่มีให้บริการ <ChevronRight className="w-4 h-4" />
           </Link>

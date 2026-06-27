@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 
+import AddressManager from "./AddressManager";
+
 export const dynamic = "force-dynamic";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -50,20 +52,7 @@ export default async function ProfilePage() {
       )}
 
       <div className="card mt-6 p-6">
-        <h2 className="mb-2 text-lg font-semibold">ที่อยู่จัดส่ง</h2>
-        {user.addresses.length === 0 ? (
-          <p className="text-sm text-slate-500">ยังไม่มีที่อยู่ที่บันทึกไว้</p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {user.addresses.map((a) => (
-              <li key={a.id} className="rounded border border-slate-200 p-3">
-                <div className="font-medium">{a.name} {a.isDefault && <span className="badge bg-brand-100 text-brand-700">ค่าเริ่มต้น</span>}</div>
-                <div>{a.phone}</div>
-                <div>{a.addressLine} {a.subDistrict} {a.district} {a.province} {a.postalCode}</div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <AddressManager />
       </div>
 
 

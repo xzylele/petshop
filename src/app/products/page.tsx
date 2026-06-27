@@ -1,70 +1,99 @@
-// หน้ารวมสินค้า: รองรับค้นหา/กรองผ่าน query string
-import Link from "next/link";
+// หน้ารวมสินค้า: รองรับค้นหา/กรองผ่าน query string และการแบ่งหมวดหมู่แบบใหม่
 import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/ProductCard";
 import type { Prisma } from "@/generated/client";
+import ProductFilters from "./ProductFilters";
 
 export const dynamic = "force-dynamic";
 
-const CATEGORIES = ["อาหารสัตว์", "ขนมสัตว์", "ของเล่น", "กรงและบ้าน", "ที่นอน", "อุปกรณ์ให้อาหารและน้ำ", "อุปกรณ์อาบน้ำและดูแลขน", "ยาและวิตามิน"];
-const PET_TYPES = ["สุนัข", "แมว", "นก", "ปลา", "กระต่าย", "สัตว์เลื้อยคลาน"];
-
 // โหลดสินค้าจาก Prisma ตามตัวกรอง
-export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ category?: string; petType?: string; q?: string }> }) {
+export default async function ProductsPage({ 
+  searchParams 
+}: { 
+  searchParams: Promise<{ 
+    category?: string; 
+    petType?: string; 
+    q?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    sort?: string;
+  }> 
+}) {
   const sp = await searchParams;
   const where: Prisma.ProductWhereInput = { 
     status: "ACTIVE",
     shop: { status: "APPROVED" }
   };
+  
   if (sp.category) where.category = sp.category;
   if (sp.petType) where.petType = sp.petType;
   if (sp.q) where.name = { contains: sp.q };
+  
+  // เพิ่มการกรองช่วงราคา
+  if (sp.minPrice || sp.maxPrice) {
+    where.price = {
+      gte: sp.minPrice ? parseFloat(sp.minPrice) : undefined,
+      lte: sp.maxPrice ? parseFloat(sp.maxPrice) : undefined,
+    };
+  }
+
+  // กำหนดการจัดเรียงลำดับ
+  let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: "desc" };
+  if (sp.sort === "price_asc") {
+    orderBy = { price: "asc" };
+  } else if (sp.sort === "price_desc") {
+    orderBy = { price: "desc" };
+  } else if (sp.sort === "name_asc") {
+    orderBy = { name: "asc" };
+  }
 
   const products = await prisma.product.findMany({
     where,
     include: { shop: { select: { name: true } } },
-    orderBy: { createdAt: "desc" }
+    orderBy
   });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold text-slate-800">สินค้าสำหรับสัตว์เลี้ยง</h1>
+      {/* ส่วนหัวของหน้า */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">สินค้าสำหรับสัตว์เลี้ยง</h1>
+        <p className="text-slate-500 mt-1">ช้อปสินค้าคุณภาพสูงสำหรับสัตว์เลี้ยงที่คุณรักจากร้านค้าที่น่าเชื่อถือ</p>
+      </div>
 
-      <form className="card mb-6 grid gap-3 p-4 md:grid-cols-4">
-        <input name="q" placeholder="ค้นหาสินค้า..." defaultValue={sp.q ?? ""} className="input md:col-span-2" />
-        <select name="category" defaultValue={sp.category ?? ""} className="input">
-          <option value="">ทุกหมวดหมู่</option>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select name="petType" defaultValue={sp.petType ?? ""} className="input">
-          <option value="">ทุกประเภทสัตว์</option>
-          {PET_TYPES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <div className="md:col-span-4 flex gap-2">
-          <button type="submit" className="btn-primary">ค้นหา</button>
-          <Link href="/products" className="btn-outline">ล้างตัวกรอง</Link>
+      <ProductFilters>
+        {/* จำนวนผลลัพธ์การค้นหา */}
+        <div className="mb-4 flex items-center justify-between text-xs font-semibold text-slate-500">
+          <span>พบสินค้าทั้งหมด {products.length} รายการ</span>
         </div>
-      </form>
 
-      {products.length === 0 ? (
-        <div className="card p-8 text-center text-slate-500">ไม่พบสินค้าที่ตรงกับเงื่อนไข</div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {products.map((p) => (
-            <ProductCard
-              key={p.id}
-              id={p.id}
-              name={p.name}
-              category={p.category}
-              petType={p.petType}
-              price={p.price}
-              imageUrl={p.imageUrl}
-              shopName={p.shop?.name}
-              stock={p.stock}
-            />
-          ))}
-        </div>
-      )}
+        {products.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-12 text-center shadow-sm">
+            <div className="text-4xl mb-3">📦</div>
+            <h2 className="text-base font-bold text-slate-800">ไม่พบสินค้า</h2>
+            <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+              ขออภัย ไม่พบสินค้าที่ตรงตามตัวเลือกของคุณในขณะนี้ กรุณาลองปรับลดเงื่อนไขการกรองหรือค้นหาคำสำคัญใหม่อีกครั้ง
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            {products.map((p) => (
+              <ProductCard
+                key={p.id}
+                id={p.id}
+                name={p.name}
+                category={p.category}
+                petType={p.petType}
+                price={p.price}
+                imageUrl={p.imageUrl}
+                shopName={p.shop?.name}
+                stock={p.stock}
+              />
+            ))}
+          </div>
+        )}
+      </ProductFilters>
     </div>
   );
 }
+

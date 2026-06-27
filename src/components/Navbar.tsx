@@ -13,7 +13,8 @@ export default function Navbar() {
   const user = session?.user;
   const [open, setOpen] = useState(false);
 
-  if (pathname && (pathname.startsWith("/admin") || pathname.startsWith("/shop"))) {
+  const isShopAdmin = pathname && (pathname === "/shop" || pathname.startsWith("/shop/"));
+  if (pathname && (pathname.startsWith("/admin") || isShopAdmin)) {
     return null;
   }
 
