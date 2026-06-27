@@ -28,6 +28,7 @@ model User {
   role      String    @default("CUSTOMER")
   status    String    @default("ACTIVE")
   avatarUrl String?
+  points    Int       @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -72,12 +73,24 @@ model Shop {
   status      String    @default("PENDING")
   allowsGrooming Boolean   @default(false)
   allowsBoarding Boolean   @default(false)
+  
+  // Custom capacity and prices
+  boardingCapacity    Int     @default(5)
+  boardingPrice       Float   @default(500)
+  groomingPriceSmall  Float   @default(350)
+  groomingPriceMedium Float   @default(500)
+  groomingPriceLarge  Float   @default(650)
+  spaPriceSmall       Float   @default(450)
+  spaPriceMedium      Float   @default(600)
+  spaPriceLarge       Float   @default(750)
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   products    Product[]
   bookings    Booking[]
+  coupons     Coupon[]
 }
 
 // -------- FARM --------
@@ -191,6 +204,12 @@ model Order {
   address        String
   note           String?
   trackingNumber String?
+  discount       Float       @default(0)
+  couponCode     String?
+  pointsUsed     Int         @default(0)
+  pointsEarned   Int         @default(0)
+  pointsCredited Boolean     @default(false)
+  pointsRefunded Boolean     @default(false)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
@@ -267,3 +286,21 @@ model Booking {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 }
+
+// -------- COUPON --------
+model Coupon {
+  id            String      @id @default(cuid()) @map("_id")
+  code          String      @unique
+  discountType  String      // PERCENTAGE | FIXED
+  discountValue Float
+  minPurchase   Float       @default(0)
+  maxDiscount   Float?
+  startDate     DateTime    @default(now())
+  endDate       DateTime
+  isActive      Boolean     @default(true)
+  shopId        String?
+  createdAt     DateTime    @default(now())
+
+  shop          Shop?       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+}
+

@@ -37,6 +37,13 @@ export default async function BookServicePage({ params }: BookPageProps) {
           shopId={shop.id} 
           allowsGrooming={shop.allowsGrooming}
           allowsBoarding={shop.allowsBoarding}
+          boardingPrice={shop.boardingPrice}
+          groomingPriceSmall={shop.groomingPriceSmall}
+          groomingPriceMedium={shop.groomingPriceMedium}
+          groomingPriceLarge={shop.groomingPriceLarge}
+          spaPriceSmall={shop.spaPriceSmall}
+          spaPriceMedium={shop.spaPriceMedium}
+          spaPriceLarge={shop.spaPriceLarge}
         />
       </div>
     </div>

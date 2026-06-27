@@ -13,9 +13,28 @@ export async function PUT(_req: Request, { params }: { params: Promise<{ id: str
     where: { id },
     data: { status: "VERIFIED", verifiedAt: new Date() }
   });
-  await prisma.order.update({
-    where: { id: payment.orderId },
-    data: { status: "PAID" }
+
+  const order = await prisma.order.findUnique({
+    where: { id: payment.orderId }
   });
+
+  if (order && !order.pointsCredited) {
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: order.userId },
+        data: { points: { increment: order.pointsEarned } }
+      }),
+      prisma.order.update({
+        where: { id: order.id },
+        data: { status: "PAID", pointsCredited: true }
+      })
+    ]);
+  } else {
+    await prisma.order.update({
+      where: { id: payment.orderId },
+      data: { status: "PAID" }
+    });
+  }
+
   return NextResponse.json({ ok: true });
 }

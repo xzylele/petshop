@@ -135,7 +135,7 @@ export default async function ShopBookingsPage() {
                       <span className="text-xs text-slate-500">ค่าบริการเริ่มต้น</span>
                       <p className="text-lg font-bold text-brand-600">{b.price} บาท</p>
                     </div>
-                    <BookingActionsClient bookingId={b.id} status={b.status} />
+                    <BookingActionsClient booking={b} />
                   </div>
                 </div>
               );

@@ -22,7 +22,15 @@ export default async function ShopProfilePage() {
         coverUrl: shop.coverUrl ?? "",
         logoUrl: shop.logoUrl ?? "",
         allowsGrooming: shop.allowsGrooming,
-        allowsBoarding: shop.allowsBoarding
+        allowsBoarding: shop.allowsBoarding,
+        boardingCapacity: shop.boardingCapacity,
+        boardingPrice: shop.boardingPrice,
+        groomingPriceSmall: shop.groomingPriceSmall,
+        groomingPriceMedium: shop.groomingPriceMedium,
+        groomingPriceLarge: shop.groomingPriceLarge,
+        spaPriceSmall: shop.spaPriceSmall,
+        spaPriceMedium: shop.spaPriceMedium,
+        spaPriceLarge: shop.spaPriceLarge
       } : null} />
     </div>
   );

@@ -10,7 +10,8 @@ import {
   Settings,
   Store,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Tag
 } from "lucide-react";
 
 interface MenuItem {
@@ -24,6 +25,7 @@ const menuItems: MenuItem[] = [
   { href: "/shop/products", label: "จัดการสินค้า/สัตว์", icon: ShoppingBag },
   { href: "/shop/orders", label: "รายการสั่งซื้อ", icon: ClipboardList },
   { href: "/shop/bookings", label: "รายการจองคิว", icon: Calendar },
+  { href: "/shop/coupons", label: "คูปองส่วนลด", icon: Tag },
   { href: "/shop/profile", label: "ตั้งค่าข้อมูลร้าน", icon: Settings },
 ];
 

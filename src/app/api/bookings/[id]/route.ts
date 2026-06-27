@@ -3,8 +3,16 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const UpdateStatusSchema = z.object({
-  status: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"])
+const UpdateBookingSchema = z.object({
+  status: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"]).optional(),
+  dateTime: z.string().optional().transform((val) => (val ? new Date(val) : undefined)),
+  checkOutDateTime: z.string().nullable().optional().transform((val) => (val ? new Date(val) : null)),
+  petName: z.string().optional(),
+  petType: z.string().optional(),
+  petWeight: z.number().nullable().optional(),
+  price: z.number().optional(),
+  notes: z.string().nullable().optional(),
+  days: z.number().int().nullable().optional()
 });
 
 export async function PATCH(
@@ -20,9 +28,12 @@ export async function PATCH(
 
   try {
     const rawData = await req.json().catch(() => null);
-    const parsed = UpdateStatusSchema.safeParse(rawData);
+    const parsed = UpdateBookingSchema.safeParse(rawData);
     if (!parsed.success) {
-      return NextResponse.json({ error: "สถานะไม่ถูกต้อง" }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || "ข้อมูลไม่ถูกต้อง" },
+        { status: 400 }
+      );
     }
 
     const { status } = parsed.data;
@@ -47,18 +58,31 @@ export async function PATCH(
 
     // กรณีที่ลูกค้าขอยกเลิก
     if (isCustomer && !isShopOwner && !isAdmin) {
-      if (status !== "CANCELLED") {
-        return NextResponse.json({ error: "สิทธิ์ไม่เพียงพอในการเปลี่ยนเป็นสถานะนี้" }, { status: 403 });
+      const keys = Object.keys(rawData || {});
+      const hasOtherKeys = keys.some((k) => k !== "status");
+      if (status !== "CANCELLED" || hasOtherKeys) {
+        return NextResponse.json({ error: "สิทธิ์ไม่เพียงพอในการแก้ไขข้อมูลส่วนนี้" }, { status: 403 });
       }
       if (booking.status !== "PENDING") {
         return NextResponse.json({ error: "สามารถยกเลิกการจองได้เฉพาะช่วงที่รอการยืนยันเท่านั้น" }, { status: 400 });
       }
     }
 
-    // ทำการอัปเดตสถานะ
+    // เตรียมอัปเดตข้อมูล
+    const updateData: any = {};
+    if (parsed.data.status !== undefined) updateData.status = parsed.data.status;
+    if (parsed.data.dateTime !== undefined) updateData.dateTime = parsed.data.dateTime;
+    if (parsed.data.checkOutDateTime !== undefined) updateData.checkOutDateTime = parsed.data.checkOutDateTime;
+    if (parsed.data.petName !== undefined) updateData.petName = parsed.data.petName;
+    if (parsed.data.petType !== undefined) updateData.petType = parsed.data.petType;
+    if (parsed.data.petWeight !== undefined) updateData.petWeight = parsed.data.petWeight;
+    if (parsed.data.price !== undefined) updateData.price = parsed.data.price;
+    if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
+    if (parsed.data.days !== undefined) updateData.days = parsed.data.days;
+
     const updatedBooking = await prisma.booking.update({
       where: { id },
-      data: { status }
+      data: updateData
     });
 
     return NextResponse.json({ ok: true, booking: updatedBooking });

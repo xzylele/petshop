@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatTHB } from "@/lib/utils";
 import CheckoutForm from "./CheckoutForm";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +30,10 @@ export default async function CheckoutPage() {
   });
 
   const items = cart?.items ?? [];
-  const total = items.reduce((s, it) => s + (it.product?.price ?? it.animal?.price ?? 0) * it.quantity, 0);
+  const initialTotal = items.reduce(
+    (s, it) => s + (it.product?.price ?? it.animal?.price ?? 0) * it.quantity,
+    0
+  );
 
   if (items.length === 0) {
     return (
@@ -42,34 +44,48 @@ export default async function CheckoutPage() {
     );
   }
 
+  // ดึงคูปองส่วนลดที่ผู้ใช้อาจใช้งานได้
+  const shopIds = items.map((it) => it.product?.shopId).filter(Boolean) as string[];
+  const availableCoupons = await prisma.coupon.findMany({
+    where: {
+      isActive: true,
+      endDate: { gte: new Date() },
+      OR: [
+        { shopId: { in: shopIds } },
+        { shopId: null }
+      ]
+    },
+    include: {
+      shop: { select: { name: true } }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold text-slate-800">ชำระเงิน</h1>
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-2">
-          <CheckoutForm addresses={user?.addresses ?? []} />
-        </div>
-        <aside className="card h-fit p-4">
-          <h2 className="mb-3 text-lg font-semibold">สรุปคำสั่งซื้อ</h2>
-          <ul className="space-y-2 text-sm">
-            {items.map((it) => {
-              const name = it.product?.name ?? it.animal?.name ?? it.animal?.animalType;
-              const price = it.product?.price ?? it.animal?.price ?? 0;
-              return (
-                <li key={it.id} className="flex justify-between">
-                  <span className="truncate pr-2">{name} × {it.quantity}</span>
-                  <span>{formatTHB(price * it.quantity)}</span>
-                </li>
-              );
-            })}
-          </ul>
-          <div className="my-3 border-t border-slate-200"></div>
-          <div className="flex justify-between text-base font-semibold">
-            <span>รวมทั้งสิ้น</span>
-            <span className="text-brand-700">{formatTHB(total)}</span>
-          </div>
-        </aside>
-      </div>
+      <h1 className="mb-6 text-2xl font-bold text-slate-900 tracking-tight">ชำระเงิน</h1>
+      <CheckoutForm
+        addresses={user?.addresses ?? []}
+        items={items.map(it => ({
+          id: it.id,
+          name: it.product?.name ?? it.animal?.name ?? it.animal?.animalType ?? "สินค้า",
+          price: it.product?.price ?? it.animal?.price ?? 0,
+          quantity: it.quantity,
+          shopId: it.product?.shopId ?? null,
+          imageUrl: it.product?.imageUrl ?? it.animal?.imageUrl ?? null
+        }))}
+        initialTotal={initialTotal}
+        userPoints={user?.points ?? 0}
+        availableCoupons={availableCoupons.map(c => ({
+          id: c.id,
+          code: c.code,
+          discountType: c.discountType as "PERCENTAGE" | "FIXED",
+          discountValue: c.discountValue,
+          minPurchase: c.minPurchase,
+          maxDiscount: c.maxDiscount,
+          shopName: c.shop?.name ?? "ส่วนลดส่วนกลาง"
+        }))}
+      />
     </div>
   );
 }

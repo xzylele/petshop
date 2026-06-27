@@ -64,7 +64,7 @@ export default async function ShopDashboardPage() {
     prisma.product.count({ where: { shopId: shop.id } }),
     prisma.orderItem.findMany({
       where: { product: { shopId: shop.id }, order: { status: { not: "CANCELLED" } } },
-      select: { price: true, quantity: true }
+      include: { order: { select: { createdAt: true } } }
     }),
     prisma.order.findMany({
       where: { items: { some: { product: { shopId: shop.id } } } },
@@ -85,13 +85,97 @@ export default async function ShopDashboardPage() {
     }),
     prisma.booking.findMany({
       where: { shopId: shop.id, status: { not: "CANCELLED" } },
-      select: { price: true }
+      select: { price: true, dateTime: true, serviceType: true, status: true }
     })
   ]);
 
   const productRevenue = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
   const serviceRevenue = allServicesBookings.reduce((s, b) => s + b.price, 0);
   const totalRevenue = productRevenue + serviceRevenue;
+
+  // --- คำนวณรายได้รายเดือนย้อนหลัง 6 เดือนสำหรับกราฟแท่ง ---
+  const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const last6Months: {
+    year: number;
+    month: number;
+    label: string;
+    productRevenue: number;
+    serviceRevenue: number;
+    total: number;
+  }[] = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    last6Months.push({
+      year: d.getFullYear(),
+      month: d.getMonth(),
+      label: `${monthNames[d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`,
+      productRevenue: 0,
+      serviceRevenue: 0,
+      total: 0
+    });
+  }
+
+  // คำนวณรายได้สินค้า
+  orderItems.forEach(item => {
+    const itemDate = item.order.createdAt;
+    const itemYear = itemDate.getFullYear();
+    const itemMonth = itemDate.getMonth();
+    const monthBin = last6Months.find(m => m.year === itemYear && m.month === itemMonth);
+    if (monthBin) {
+      monthBin.productRevenue += item.price * item.quantity;
+    }
+  });
+
+  // คำนวณรายได้บริการ
+  allServicesBookings.forEach(booking => {
+    const bDate = booking.dateTime;
+    const bYear = bDate.getFullYear();
+    const bMonth = bDate.getMonth();
+    const monthBin = last6Months.find(m => m.year === bYear && m.month === bMonth);
+    if (monthBin) {
+      monthBin.serviceRevenue += booking.price;
+    }
+  });
+
+  last6Months.forEach(m => {
+    m.total = m.productRevenue + m.serviceRevenue;
+  });
+
+  // หาจุดสูงสุดสำหรับกำหนด Scale ของกราฟ
+  const maxMonthlyRevenue = Math.max(...last6Months.map(m => m.total), 10000);
+
+  // --- คำนวณสัดส่วนบริการสำหรับการฟวงกลม Donut ---
+  let groomingCount = 0;
+  let spaCount = 0;
+  let hotelCount = 0;
+  allServicesBookings.forEach(b => {
+    if (b.serviceType === "GROOMING") groomingCount++;
+    else if (b.serviceType === "SPA") spaCount++;
+    else if (b.serviceType === "PET_HOTEL") hotelCount++;
+  });
+  const totalServiceBookings = groomingCount + spaCount + hotelCount;
+
+  const groomingPct = totalServiceBookings > 0 ? (groomingCount / totalServiceBookings) : 0;
+  const spaPct = totalServiceBookings > 0 ? (spaCount / totalServiceBookings) : 0;
+  const hotelPct = totalServiceBookings > 0 ? (hotelCount / totalServiceBookings) : 0;
+
+  // สำหรับวาดวงกลม (C = 226.2)
+  const strokeGrooming = 226.2 * groomingPct;
+  const strokeSpa = 226.2 * spaPct;
+  const strokeHotel = 226.2 * hotelPct;
+  const offsetGrooming = 0;
+  const offsetSpa = strokeGrooming;
+  const offsetHotel = strokeGrooming + strokeSpa;
+
+  // --- คำนวณดัชนีผลการจอง ---
+  const totalBookingsCount = await prisma.booking.count({ where: { shopId: shop.id } });
+  const cancelledBookingsCount = await prisma.booking.count({ where: { shopId: shop.id, status: "CANCELLED" } });
+  const completedBookingsCount = await prisma.booking.count({ where: { shopId: shop.id, status: "COMPLETED" } });
+  const pendingBookingsCount = await prisma.booking.count({ where: { shopId: shop.id, status: "PENDING" } });
+
+  const completionRate = totalBookingsCount > 0 ? Math.round((completedBookingsCount / totalBookingsCount) * 100) : 0;
+  const cancellationRate = totalBookingsCount > 0 ? Math.round((cancelledBookingsCount / totalBookingsCount) * 100) : 0;
 
   const getOrderStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -203,6 +287,206 @@ export default async function ShopDashboardPage() {
             <Link href="/shop/bookings" className="text-[10px] text-brand-700 font-semibold hover:underline mt-1 inline-block">
               ดูตารางคิวงานจอง &rarr;
             </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Visual Analytics Graphs Section */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Monthly Revenue Bar Chart (Last 6 Months) */}
+        <div className="lg:col-span-2 rounded-2xl border border-slate-100 bg-white p-5 hover:shadow-sm transition-all">
+          <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-4">
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">สถิติรายได้ 6 เดือนย้อนหลัง</h3>
+              <p className="text-[10px] text-slate-400">เปรียบเทียบยอดขายสินค้าและยอดจองบริการ</p>
+            </div>
+            <div className="flex gap-3 text-[10px] text-slate-500 font-medium">
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-sky-500 rounded-sm"></span> ยอดขายสินค้า</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-indigo-500 rounded-sm"></span> ยอดบริการจอง</span>
+            </div>
+          </div>
+
+          {/* SVG Bar Chart */}
+          <div className="relative w-full h-[220px]">
+            <svg viewBox="0 0 540 220" className="w-full h-full text-slate-300">
+              {/* Grid Lines */}
+              <line x1="40" y1="20" x2="520" y2="20" stroke="#f1f5f9" strokeWidth="1" />
+              <line x1="40" y1="65" x2="520" y2="65" stroke="#f1f5f9" strokeWidth="1" />
+              <line x1="40" y1="110" x2="520" y2="110" stroke="#f1f5f9" strokeWidth="1" />
+              <line x1="40" y1="155" x2="520" y2="155" stroke="#f1f5f9" strokeWidth="1" />
+              <line x1="40" y1="180" x2="520" y2="180" stroke="#cbd5e1" strokeWidth="1.5" />
+
+              {/* Y-Axis Labels */}
+              <text x="32" y="24" textAnchor="end" className="text-[9px] fill-slate-400 font-semibold">{formatTHB(maxMonthlyRevenue)}</text>
+              <text x="32" y="104" textAnchor="end" className="text-[9px] fill-slate-400 font-semibold">{formatTHB(maxMonthlyRevenue / 2)}</text>
+              <text x="32" y="184" textAnchor="end" className="text-[9px] fill-slate-400 font-semibold">0 บ.</text>
+
+              {/* Bars */}
+              {last6Months.map((m, idx) => {
+                const colWidth = 80;
+                const startX = 60 + idx * colWidth;
+                const barWidth = 16;
+                const gap = 4;
+
+                // คำนวณความสูง (Max height = 150px)
+                const productBarH = (m.productRevenue / maxMonthlyRevenue) * 150;
+                const serviceBarH = (m.serviceRevenue / maxMonthlyRevenue) * 150;
+
+                const productY = 180 - productBarH;
+                const serviceY = 180 - serviceBarH;
+
+                return (
+                  <g key={idx} className="group cursor-pointer">
+                    {/* Tooltip Background & Text on hover (handled by CSS/Tailwind group hover) */}
+                    <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                      <rect x={startX - 15} y={Math.min(productY, serviceY) - 32} width="90" height="26" rx="6" fill="#1e293b" />
+                      <text x={startX + 30} y={Math.min(productY, serviceY) - 15} textAnchor="middle" className="text-[9px] fill-white font-bold">
+                        รวม: {formatTHB(m.total)}
+                      </text>
+                    </g>
+
+                    {/* Product Bar (Sky) */}
+                    <rect
+                      x={startX}
+                      y={productY}
+                      width={barWidth}
+                      height={productBarH}
+                      rx="3"
+                      fill="#0ea5e9"
+                      className="transition-all duration-300 hover:fill-sky-400"
+                    />
+
+                    {/* Service Bar (Indigo) */}
+                    <rect
+                      x={startX + barWidth + gap}
+                      y={serviceY}
+                      width={barWidth}
+                      height={serviceBarH}
+                      rx="3"
+                      fill="#6366f1"
+                      className="transition-all duration-300 hover:fill-indigo-400"
+                    />
+
+                    {/* Month Label */}
+                    <text x={startX + barWidth} y="200" textAnchor="middle" className="text-[10px] fill-slate-500 font-bold">
+                      {m.label}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+        </div>
+
+        {/* Service Type Donut Chart */}
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 hover:shadow-sm transition-all flex flex-col justify-between">
+          <div className="border-b border-slate-50 pb-3 mb-2">
+            <h3 className="font-bold text-slate-800 text-sm">สัดส่วนบริการจองคิว</h3>
+            <p className="text-[10px] text-slate-400">แบ่งตามประเภทบริการทั้งหมด</p>
+          </div>
+
+          <div className="flex items-center justify-around py-2">
+            {/* SVG Donut */}
+            {totalServiceBookings === 0 ? (
+              <div className="w-24 h-24 rounded-full border-4 border-slate-50 flex items-center justify-center text-[10px] text-slate-400 font-semibold">
+                ไม่มีข้อมูล
+              </div>
+            ) : (
+              <div className="relative w-28 h-28">
+                <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                  {/* Background Circle */}
+                  <circle cx="50" cy="50" r="36" fill="transparent" stroke="#f8fafc" strokeWidth="10" />
+
+                  {/* Grooming slice (Sky) */}
+                  {groomingCount > 0 && (
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="36"
+                      fill="transparent"
+                      stroke="#0ea5e9"
+                      strokeWidth="10"
+                      strokeDasharray={`${strokeGrooming} 226.2`}
+                      strokeDashoffset={-offsetGrooming}
+                      strokeLinecap="round"
+                    />
+                  )}
+
+                  {/* Spa slice (Pink) */}
+                  {spaCount > 0 && (
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="36"
+                      fill="transparent"
+                      stroke="#ec4899"
+                      strokeWidth="10"
+                      strokeDasharray={`${strokeSpa} 226.2`}
+                      strokeDashoffset={-offsetSpa}
+                      strokeLinecap="round"
+                    />
+                  )}
+
+                  {/* Pet Hotel slice (Indigo) */}
+                  {hotelCount > 0 && (
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="36"
+                      fill="transparent"
+                      stroke="#6366f1"
+                      strokeWidth="10"
+                      strokeDasharray={`${strokeHotel} 226.2`}
+                      strokeDashoffset={-offsetHotel}
+                      strokeLinecap="round"
+                    />
+                  )}
+                </svg>
+                {/* Center text */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-base font-black text-slate-800">{totalServiceBookings}</span>
+                  <span className="text-[8px] text-slate-400 font-semibold uppercase">การจอง</span>
+                </div>
+              </div>
+            )}
+
+            {/* Legend */}
+            <div className="flex flex-col gap-2 text-[10px] text-slate-600">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 bg-sky-500 rounded-full"></span> 
+                ตัดขน: {groomingCount} ({Math.round(groomingPct * 100)}%)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 bg-pink-500 rounded-full"></span> 
+                สปา: {spaCount} ({Math.round(spaPct * 100)}%)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></span> 
+                ฝากเลี้ยง: {hotelCount} ({Math.round(hotelPct * 100)}%)
+              </span>
+            </div>
+          </div>
+
+          {/* Stats rate summary */}
+          <div className="border-t border-slate-50 pt-3 space-y-2 text-[10px]">
+            <div>
+              <div className="flex justify-between font-semibold text-slate-600 mb-1">
+                <span>อัตราการให้บริการสำเร็จ</span>
+                <span className="text-emerald-600 font-bold">{completionRate}%</span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${completionRate}%` }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between font-semibold text-slate-600 mb-1">
+                <span>อัตราการยกเลิกคิวงาน</span>
+                <span className="text-rose-600 font-bold">{cancellationRate}%</span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-rose-500 h-full rounded-full transition-all duration-500" style={{ width: `${cancellationRate}%` }}></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

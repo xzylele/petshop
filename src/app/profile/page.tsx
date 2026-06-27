@@ -37,6 +37,7 @@ export default async function ProfilePage() {
           <Field label="ชื่อ" value={user.name} />
           <Field label="อีเมล" value={user.email} />
           <Field label="เบอร์โทร" value={user.phone ?? "—"} />
+          <Field label="คะแนนสะสม" value={`${user.points} แต้ม`} />
           <Field label="บทบาท" value={ROLE_LABEL[user.role] ?? user.role} />
           <Field label="สถานะบัญชี" value={user.status} />
           <Field label="สมัครเมื่อ" value={formatDate(user.createdAt)} />

@@ -107,7 +107,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "ร้านค้านี้ไม่เปิดให้บริการรับฝากเลี้ยงสัตว์เลี้ยง" }, { status: 400 });
     }
 
-    // 2. คำนวณราคาคิวตามเงื่อนไขที่กำหนด
+    // 2. คำนวณราคาคิวตามเงื่อนไขที่กำหนดของร้านค้า
     let price = 0;
 
     if (serviceType === "GROOMING") {
@@ -115,25 +115,76 @@ export async function POST(req: Request) {
       if (weight <= 0) {
         return NextResponse.json({ error: "กรุณาระบุน้ำหนักสัตว์เลี้ยงที่ถูกต้องสำหรับบริการอาบน้ำตัดขน" }, { status: 400 });
       }
-      if (weight <= 5) price = 350;
-      else if (weight <= 15) price = 500;
-      else price = 650;
+      if (weight <= 5) price = shop.groomingPriceSmall;
+      else if (weight <= 15) price = shop.groomingPriceMedium;
+      else price = shop.groomingPriceLarge;
     } 
     else if (serviceType === "SPA") {
       const weight = petWeight ?? 0;
       if (weight <= 0) {
         return NextResponse.json({ error: "กรุณาระบุน้ำหนักสัตว์เลี้ยงที่ถูกต้องสำหรับบริการสปา" }, { status: 400 });
       }
-      if (weight <= 5) price = 450;
-      else if (weight <= 15) price = 600;
-      else price = 750;
+      if (weight <= 5) price = shop.spaPriceSmall;
+      else if (weight <= 15) price = shop.spaPriceMedium;
+      else price = shop.spaPriceLarge;
     } 
     else if (serviceType === "PET_HOTEL") {
       const boardingDays = days ?? 1;
       if (boardingDays <= 0) {
         return NextResponse.json({ error: "จำนวนวันรับฝากเลี้ยงต้องมีอย่างน้อย 1 วัน" }, { status: 400 });
       }
-      price = boardingDays * 500; // วันละ 500 บาท
+      price = boardingDays * shop.boardingPrice;
+    }
+
+    // 3. ตรวจสอบโควตาความจุ (Capacity Check)
+    if (serviceType === "GROOMING" || serviceType === "SPA") {
+      const existingCount = await prisma.booking.count({
+        where: {
+          shopId,
+          serviceType,
+          status: { in: ["PENDING", "CONFIRMED"] },
+          dateTime: dateTime
+        }
+      });
+      if (existingCount >= 3) {
+        return NextResponse.json(
+          { error: "ขออภัย ช่วงเวลานี้มีผู้จองเต็มแล้ว (จำกัด 3 คิวต่อชั่วโมง)" },
+          { status: 400 }
+        );
+      }
+    } else if (serviceType === "PET_HOTEL" && checkOutDateTime) {
+      const checkInDate = new Date(dateTime);
+      const checkOutDate = new Date(checkOutDateTime);
+      let currentDate = new Date(checkInDate);
+      currentDate.setHours(0, 0, 0, 0);
+      const lastDate = new Date(checkOutDate);
+      lastDate.setHours(23, 59, 59, 999);
+
+      while (currentDate <= lastDate) {
+        const dayStart = new Date(currentDate);
+        const dayEnd = new Date(currentDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const activeCount = await prisma.booking.count({
+          where: {
+            shopId,
+            serviceType: "PET_HOTEL",
+            status: { in: ["PENDING", "CONFIRMED"] },
+            dateTime: { lte: dayEnd },
+            checkOutDateTime: { gte: dayStart }
+          }
+        });
+
+        if (activeCount >= shop.boardingCapacity) {
+          const dateFormatted = currentDate.toISOString().split("T")[0];
+          return NextResponse.json(
+            { error: `ขออภัย วันที่ ${dateFormatted} มีสัตว์เลี้ยงฝากเลี้ยงเต็มความจุแล้ว (${activeCount}/${shop.boardingCapacity} ตัว)` },
+            { status: 400 }
+          );
+        }
+
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
     }
 
     const booking = await prisma.booking.create({

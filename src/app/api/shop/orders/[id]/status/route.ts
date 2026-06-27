@@ -34,12 +34,77 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!hasMyItem) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  await prisma.order.update({ 
-    where: { id }, 
-    data: { 
-      status: parsed.data.status,
-      trackingNumber: parsed.data.trackingNumber !== undefined ? parsed.data.trackingNumber : undefined
-    } 
-  });
+  const newStatus = parsed.data.status;
+  const order = await prisma.order.findUnique({ where: { id } });
+  if (!order) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+  if (newStatus === "CANCELLED") {
+    if (!order.pointsRefunded) {
+      await prisma.$transaction(async (tx) => {
+        // คืนแต้มที่ผู้ใช้จ่ายไป
+        if (order.pointsUsed > 0) {
+          await tx.user.update({
+            where: { id: order.userId },
+            data: { points: { increment: order.pointsUsed } }
+          });
+        }
+        // ยึดแต้มคืนหากชำระเงินและบวกแต้มไปแล้ว
+        if (order.pointsCredited && order.pointsEarned > 0) {
+          const u = await tx.user.findUnique({ where: { id: order.userId } });
+          const currentPoints = u ? u.points : 0;
+          await tx.user.update({
+            where: { id: order.userId },
+            data: { points: Math.max(0, currentPoints - order.pointsEarned) }
+          });
+        }
+        // อัปเดตสถานะออเดอร์
+        await tx.order.update({
+          where: { id },
+          data: {
+            status: "CANCELLED",
+            pointsRefunded: true,
+            pointsCredited: false,
+            trackingNumber: parsed.data.trackingNumber !== undefined ? parsed.data.trackingNumber : undefined
+          }
+        });
+      });
+    } else {
+      await prisma.order.update({
+        where: { id },
+        data: {
+          status: "CANCELLED",
+          trackingNumber: parsed.data.trackingNumber !== undefined ? parsed.data.trackingNumber : undefined
+        }
+      });
+    }
+  } else {
+    // สถานะอื่น ๆ (PAID, PREPARING, SHIPPED, COMPLETED)
+    const shouldCreditPoints = ["PAID", "PREPARING", "SHIPPED", "COMPLETED"].includes(newStatus);
+    if (shouldCreditPoints && !order.pointsCredited) {
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: order.userId },
+          data: { points: { increment: order.pointsEarned } }
+        }),
+        prisma.order.update({
+          where: { id },
+          data: {
+            status: newStatus,
+            pointsCredited: true,
+            trackingNumber: parsed.data.trackingNumber !== undefined ? parsed.data.trackingNumber : undefined
+          }
+        })
+      ]);
+    } else {
+      await prisma.order.update({
+        where: { id },
+        data: {
+          status: newStatus,
+          trackingNumber: parsed.data.trackingNumber !== undefined ? parsed.data.trackingNumber : undefined
+        }
+      });
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

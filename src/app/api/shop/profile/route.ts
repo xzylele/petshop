@@ -13,7 +13,15 @@ const Body = z.object({
   coverUrl: z.string().optional().default(""),
   logoUrl: z.string().optional().default(""),
   allowsGrooming: z.boolean().optional().default(false),
-  allowsBoarding: z.boolean().optional().default(false)
+  allowsBoarding: z.boolean().optional().default(false),
+  boardingCapacity: z.number().int().nonnegative().optional().default(5),
+  boardingPrice: z.number().nonnegative().optional().default(500),
+  groomingPriceSmall: z.number().nonnegative().optional().default(350),
+  groomingPriceMedium: z.number().nonnegative().optional().default(500),
+  groomingPriceLarge: z.number().nonnegative().optional().default(650),
+  spaPriceSmall: z.number().nonnegative().optional().default(450),
+  spaPriceMedium: z.number().nonnegative().optional().default(600),
+  spaPriceLarge: z.number().nonnegative().optional().default(750)
 });
 
 // PUT: สร้างหรืออัปเดตร้านค้าของผู้ใช้
